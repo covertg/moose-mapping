@@ -1,0 +1,90 @@
+---
+title: "Feeling Connected"
+output: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T)
+```
+
+```{r echo=F}
+library(tidyverse)
+library(ggthemes)
+library(sf)  # need to import sf in order for readRDS to work correctly
+library(plotly)
+```
+
+```{r}
+# Load data
+t <- "20201216_104624"
+data.connectedness <- readRDS(paste("data/locations.conn_", t, ".rds", sep="")) %>%
+    filter(Waypoint == 1) %>%  # Remove duplicated data in waypoints and epoch2.5
+    filter(Epoch != 2.5)
+# Augment an extra column to extend data through 2020 (365th day)
+data.connectedness <- data.connectedness %>%
+    rbind(data.connectedness %>%
+              filter(Epoch==6) %>%
+              mutate(Epoch=7, Day=365, TimeEW="t7-1"))
+# "Jitter" values just a little bit, so it's easier to see overlapping points
+c_jitter <- data.connectedness %>%
+    mutate(Day=jitter(Day, factor=1)) %>%  # x
+    mutate(Connectedness=jitter(Connectedness, factor=.5))  # y
+```
+
+## Connectedness by graduation year
+
+```{r}
+g <- ggplot(c_jitter, aes(x=Day, y=Connectedness, color=factor(Year), group=ID)) +
+    geom_line(alpha=0.15) +
+    geom_point(alpha=0.35) +
+    scale_y_continuous(breaks=1:10) +
+    scale_x_continuous(breaks=unique(data.connectedness$Day)) +
+    scale_color_brewer(palette="Spectral") +
+    theme_tufte()
+ggplotly(g)
+
+# https://stackoverflow.com/questions/36227482/r-ggplot-dodging-geom-lines
+# https://ggplot2.tidyverse.org/reference/scale_brewer.html
+```
+
+Note that you can selectively view graduation years, or groups of graduation years, by clicking on the legend above.
+
+Guiding question: what is the trend in connectedness over time?
+
+## Connectedness by proximity to campus in Fall 2020
+
+```{r}
+g <- ggplot(c_jitter %>% filter(!is.na(Housing.F20)),
+            aes(x=Day, y=Connectedness, color=Housing.F20, group=ID)) +
+    geom_line(alpha=0.15) +
+    geom_point(alpha=0.35) +
+    scale_y_continuous(breaks=1:10) +
+    scale_x_continuous(breaks=unique(data.connectedness$Day)) +
+    scale_color_brewer(palette="Spectral") +
+    theme_tufte()
+ggplotly(g)
+```
+
+Focus on the Fall semester: what's going on in Day 327?
+
+# Connectedness by enrollment status in Fall 2020
+```{r}
+g <- ggplot(c_jitter, aes(x=Day, y=Connectedness, color=Enrolled, shape=Enrolled, group=ID)) +
+    geom_line(alpha=0.25) +
+    geom_point(alpha=0.45) +
+    scale_y_continuous(breaks=1:10) +
+    scale_x_continuous(breaks=unique(data.connectedness$Day)) +
+    scale_color_brewer(palette="Pastel1") +
+    theme_tufte()
+ggplotly(g)
+```
+
+Once again: helpful to look specifically at Fall 2020.
+
+## Guiding Questions
+
+* For each year/grade: which time represents the highest connectedness?
+* How does connectedness vary between location and enrollment in F20?
+* What happens to connectedness over Spring break and Summer?
+
+Also note that the remainder of the year, from November 21 through December, is just assumed to be constant.

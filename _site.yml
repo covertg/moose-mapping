@@ -1,0 +1,36 @@
+name: "mapping-moose"
+title: "ES College in Diaspora"
+description: |
+  Visualizing our community in the face of COVID-19
+exclude: ["data, README.md"]
+favicon: "site-data/favicon/favicon.ico"
+# google_analytics: "na"
+
+navbar:
+  left:
+    - text: "Code & Data"
+      menu:
+        - text: "Data Cleaning & Introduction"
+          href: data_cleaning.html
+        - text: "Data Formatting & Augmentation"
+          href: data_formatting.html
+        - text: "Software Libraries"
+          href: libraries.html
+    - text: "Mapping Moose"
+      href:  mapping_moose.html
+    #- text: "Missing Moose"
+      #href:  missing_moose.html
+    - text: "Feeling Connected"
+      href: connectedness.html
+    - text: 'Key "Places"'
+      href: places.html
+    
+  right:
+    - icon: fab fa-github
+      href: https://github.com/covertg/moose-mapping
+
+output_dir: "docs"    
+theme: moose-mapping-theme.css
+output:
+  distill::distill_article:
+    highlight: kate  # https://www.garrickadenbuie.com/blog/pandoc-syntax-highlighting-examples/

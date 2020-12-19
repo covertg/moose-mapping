@@ -1,0 +1,158 @@
+@import url('https://fonts.googleapis.com/css2?family=Alata');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code');
+@import url("https://cdn.jsdelivr.net/gh/vsalvino/computer-modern@main/fonts/serif.css"); /* Thank you https://github.com/vsalvino/computer-modern */
+
+html {
+  /*-- Main font sizes --*/
+  --title-size:      40px; /* edit */
+  --body-size:       1rem; /* edit */
+  --code-size:       0.8rem; /* edit */
+  --aside-size:      12px;
+  --fig-cap-size:    13px;
+  /*-- Main font colors --*/
+  --title-color:     #000000;
+  --header-color:    rgba(0, 0, 0, 0.8);
+  --body-color:      rgba(0, 0, 0, 0.96); /* edit */
+  --aside-color:     rgba(0, 0, 0, 0.84); /* edit */
+  --fig-cap-color:   rgba(0, 0, 0, 0.84); /* edit */
+  /*-- Specify custom fonts ~~~ must be imported above   --*/
+  --heading-font:    "Alata", sans-serif;
+  --mono-font:       "Fira Code", monospace;
+  --body-font:       "Computer Modern Serif", serif;
+  --navbar-font:     "Alata", sans-serif;
+  /* Other vars */
+  --line-height:    1.2;
+}
+
+/*-- ARTICLE METADATA --*/
+d-byline {
+  --heading-size:    0.6rem;
+  --heading-color:   rgba(0, 0, 0, 0.5);
+  --body-size:       0.8rem;
+  --body-color:      rgba(0, 0, 0, 0.8);
+}
+
+/*-- ARTICLE TABLE OF CONTENTS --*/
+.d-contents {
+  --heading-size:    18px;
+  --contents-size:   13px;
+}
+
+/*-- ARTICLE APPENDIX --*/
+d-appendix {
+  --heading-size:    15px;
+  --heading-color:   rgba(0, 0, 0, 0.65);
+  --text-size:       0.8em;
+  --text-color:      var(--body-color); /* edit */
+}
+
+/*-- WEBSITE HEADER + FOOTER --*/
+/* These properties only apply to Distill sites and blogs  */
+
+.distill-site-header {
+  --title-size:       18px;
+  --text-size:        15px;
+  --text-color:       #fff;  /* edit */
+  --hover-color:      yellow;  /* edit */
+  --bkgd-color:       #000;  /* edit */
+}
+
+/*.distill-site-footer {
+  --text-color:       rgba(255, 255, 255, 0.8);
+  --text-size:        15px;
+  --hover-color:      white;
+  --bkgd-color:       #0F2E3D;
+}*/
+
+/*-- Additional custom styles --*/
+
+/* Slimmer line height */
+d-article, d-article h2, d-article h3, d-title h1, d-title p {
+    line-height: 1;
+}
+d-article pre, d-article p, d-article ul, d-article ol {
+    line-height: var(--line-height);
+}
+
+/* Reduce margins, padding */
+d-title {
+    padding: 6rem 0 1.5rem 0;
+}
+d-title p, d-article li {
+    margin: 0;
+}
+d-article {
+    padding-top: 1.5rem;
+}
+d-article h2, d-article h3 {
+    margin: 0 0 1.5rem 0;
+}
+.pagedtable th { /* Mirrors padding on the footer */
+    padding-top: 5px;
+    padding-bottom: 4px;
+}
+div.sourceCode {
+    margin: 0 0 0 1em;
+}
+
+d-article {
+    font-size: var(--body-size);
+}
+
+/* Relative header sizing (Distill doesn't theme h1) */
+d-article h2 {
+    font-size: 2em;
+}
+d-article h3 {
+    font-size: 1.17em;
+}
+
+/* Correctly color dropdowns in the nav bar */
+.nav-dropdown .nav-dropbtn {
+    color: var(--text-color);
+}
+.nav-dropdown .nav-dropbtn:hover {
+    color: var(--hover-color);
+}
+.nav-dropdown-content {
+    background-color: var(--bkgd-color);
+}
+.nav-dropdown-content a {
+    color: var(--text-color);
+}
+.nav-dropdown-content a:hover {
+    background-color: var(--bkgd-color);
+}
+
+/* Monospace font for dataframes */
+.pagedtable {
+    font-family: var(--mono-font);
+}
+.pagedtable table th, .pagedtable table td, .pagedtable .pagedtable-footer {
+    font-size: var(--code-size);
+}
+
+/* Increase width of page content */
+@media screen and (min-width: 768px) {
+    .base-grid, distill-header, d-title, d-abstract, d-article, d-appendix, distill-appendix, d-byline, d-footnote-list, d-citation-list, distill-footer {
+        grid-template-columns: [screen-start] 1fr [page-start kicker-start middle-start text-start] repeat(8, 60px) [ kicker-end text-end gutter-start] 30px [middle-end] 30px [page-end gutter-end] 1fr [screen-end];
+        grid-column-gap: 16px;
+    }
+}
+@media screen and (min-width: 1000px) {
+    .base-grid, distill-header, d-title, d-abstract, d-article, d-appendix, distill-appendix, d-byline, d-footnote-list, d-citation-list, distill-footer {
+        grid-template-columns: [screen-start] 1fr [page-start kicker-start] 80px [middle-start] 50px [text-start kicker-end] repeat(8, 70px) [text-end gutter-start] 55px [middle-end] 55px [page-end gutter-end] 1fr [screen-end];
+        grid-column-gap: 16px;
+    }
+}
+@media screen and (min-width: 1180px) {
+    .base-grid, distill-header, d-title, d-abstract, d-article, d-appendix, distill-appendix, d-byline, d-footnote-list, d-citation-list, distill-footer {
+        grid-template-columns: [screen-start] 1fr [page-start kicker-start] 65px [middle-start] 65px [text-start kicker-end] repeat(8, 92px) [text-end gutter-start] 65px [middle-end] 65px [page-end gutter-end] 1fr [screen-end];
+        grid-column-gap: 16px;
+    }
+}
+
+/* Header font in Table of Contents */
+.d-contents ul {
+    font-family: var(--heading-font);
+}

@@ -1,0 +1,99 @@
+---
+title: "Meaningful Places & Where to Find them"
+output:
+    distill::distill_article:
+        toc: true
+description: "Places and pathways"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T)
+```
+
+```{r echo=F}
+library(tidyverse)
+library(rnaturalearth)
+library(tigris)  # gives state data
+library(sf)
+library(ggthemes)
+library(plotly)
+library(gganimate)  # also requires transformr
+library(osmdata)
+library(ggwordcloud)
+```
+
+```{r results="hide"}
+t <- "20201216_104624"
+data.places.physical <- readRDS(paste("data/places.physical_" , t, ".rds"))
+
+states <- states(class = "sf")
+ct <- states %>% filter(NAME=="Connecticut")
+```
+
+```{r}
+# Code adapted from that seen in Section
+nhv_bb <- getbb("New Haven United States")
+big_streets <- nhv_bb %>%
+    opq() %>%
+    add_osm_feature(key = "highway",
+                    value = c("motorway", "primary", "motorway_link", "primary_link")
+    ) %>%
+    osmdata_sf()
+med_streets <- nhv_bb %>%
+    opq() %>%
+    add_osm_feature(key = "highway",
+                    value = c("secondary", "tertiary", "secondary_link", "tertiary_link")
+    ) %>%
+    osmdata_sf()
+small_streets <- nhv_bb %>%
+    opq() %>%
+    add_osm_feature(key = "highway",
+                    value = c("residential", "living_street", "unclassified", "service", "footway")
+    ) %>%
+    osmdata_sf()
+```
+
+```{r layout="l-screen-inset"}
+p_jitter <- st_jitter(data.places.physical, factor=0.00005)
+x.lim <- c(-72.939, -72.903)
+y.lim <- c(41.302, 41.332)
+# https://stackoverflow.com/questions/51566685/plotting-a-kernel-map-based-on-points-with-geom-sf
+p_jitter['x'] <- map_dbl(p_jitter$geometry, ~.[1])
+p_jitter['y'] <- map_dbl(p_jitter$geometry, ~.[2])
+
+g <- ggplot(data=p_jitter) +
+    geom_sf(data=ct) +
+    geom_sf(data=big_streets$osm_lines, size=.4, alpha=.3, color="black") +
+    geom_sf(data=med_streets$osm_lines, size=.3, alpha=.5, color="black") +
+    geom_sf(data=small_streets$osm_lines, size=.2, alpha=.3, color="black") +
+    geom_density_2d(aes(x=x, y=y), size=0.2) +  # Sadly, plotly isn't ready for density_2d_filled
+    geom_sf(color="yellow", alpha=0.9) +
+    lims(x=x.lim, y=y.lim) +
+    theme(axis.text=element_blank(), axis.ticks=element_blank(), axis.title=element_blank())
+
+ggplotly(g)
+```
+
+Note the little Koffee? bump. And a good little cluster around East Rock (and one West Rock).
+
+## Virtual realm
+
+```{r}
+t <- "20201216_104624"
+data.places.virt <- read.csv(paste("data/places.virt_" , t, ".csv"))
+```
+
+The venerable word cloud lives to see another day:
+
+```{r}
+set.seed(2021)
+places <- data.places.virt %>%
+    mutate(angle = 90 * sample(c(0, 1), n(), replace=T, prob=c(60, 40))) %>%
+    mutate(size = sample(c(10.4, 10.7, 11, 11.2), n(), replace=T, prob=c(31, 23, 23, 23)))
+    
+ggplot(places, aes(label=Name, angle=angle, size=size)) +
+    # https://cran.r-project.org/web/packages/ggwordcloud/vignettes/ggwordcloud.html
+    geom_text_wordcloud_area(family="Serif") +
+    theme_tufte()
+```
+

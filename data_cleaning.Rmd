@@ -1,0 +1,199 @@
+---
+title: "Data Cleaning & Introduction"
+#description: "Data wrangling."
+output:
+  distill::distill_article:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=F}
+library(tidyverse)
+library(rmarkdown)
+```
+
+## Overview
+
+Most of the coding setup necessary for this project's visualizations will be developed in the following sections, for the sake of tidiness. For those interested in following the code, these sections should be elucidating for the various datasets and data formats employed. For all readers, some sections contain the full data tables to be explored.
+
+Nearly all of the data originates from one of two sources: a Qualtrics survey disseminated to students in Stiles, and some housing data from the college. Some data is also a handmade set of geographic polygons corresponding to the different dorms that have housed Stiles students.
+
+A copy of the survey questions may be found [here](site-data/MooseMapping_Qualtrics.pdf). While this project is a living document and could easily update to take more student responses, at initial publication, 54 complete student responses were recorded.
+
+A note on dates/timing: these numbers represent these times.
+
+* t1 is before Spring Break (< 3/7)
+* t2 is Spring Break week 1 (3/7 - 3/15)
+* t2.5 is Spring Break week 2 (3/16 - 3/22)
+* t3 is remainder of semester (3/23 - 5/6)
+* t4 is Summer (5/7 - Aug)
+* t5 is Fall semester, before break (8/31 - 11/21)
+* t6 is remainder of Fall semester (11/22 - 2020)
+
+## Survey Responses
+
+### Cleanup
+
+The data table below lists all responses in the Qualtrics survey, excepting a few personally-identifying data points:
+
+```{r}
+data.qualtrics <- read.csv("data/qualtrics_20201016_101500.csv") %>%
+    slice(3:n()) %>%  # First two rows do not have respondent data; remove them
+    na_if("")  # Qualtrics saves NA in CSV as blank strings; reset those to NA
+
+paged_table(data.qualtrics %>%
+                select(-c(IPAddress, LocationLongitude, LocationLatitude, Q25)))
+```
+
+Note that a number of responses are blank or incomplete. We trim these empty rows, rename the relevant columns, and remove all unwanted columns from the survey data:
+
+```{r}
+data.students <- data.qualtrics %>%
+    transmute(
+        # Student info
+        Year=Q24, Email=Q25,
+        Enrolled.F20=case_when(
+            Q23=="Enrolled" ~ T,
+            Q23=="On Leave" ~ F,
+            TRUE ~ NA),
+        # Location/movement data at time t
+        Loc1=Q4, Dorm1=Q5, Loc2=Q6, Loc2.5=Q26, Loc3=Q7, Loc4=Q8, Loc5=Q9, Dorm5=Q10,
+        Loc6=Q11,
+        # Meaning/nostalgia data (in expanded form)
+        Place1.n=Q20.1_1_1, Place1.t=Q20.2_1, Place2.n=Q20.1_2_1, Place2.t=Q20.2_2,
+        Place3.n=Q20.1_3_1, Place3.t=Q20.2_3, Place4.n=Q20.1_4_1, Place4.t=Q20.2_4,
+        Place5.n=Q20.1_5_1, Place5.t=Q20.2_5, Place6.n=Q20.1_6_1, Place6.t=Q20.2_6,
+        Place7.n=Q20.1_7_1, Place7.t=Q20.2_7, Place8.n=Q20.1_8_1, Place8.t=Q20.2_8,
+        Place9.n=Q20.1_9_1, Place9.t=Q20.2_9, Place10.n=Q20.1_10_1, Place10.t=Q20.2_10,
+        # Connectedness data
+        Conn1=Q22.1_1, Conn2=Q22.1_2, Conn3=Q22.1_3, Conn4=Q22.1_4,
+        Conn5=Q22.1_5, Conn6=Q22.1_6,
+        # Useful Qualtrics data
+        ID=ResponseId, Duration=Duration..in.seconds.
+    ) %>%
+    # Remove blank responses (empty Place1)
+    filter(!is.na(Place1.n)) %>%
+    # Set appropriate columns to numeric
+    mutate(Year=as.numeric(Year), Conn1=as.numeric(Conn1), Conn2=as.numeric(Conn2),
+           Conn3=as.numeric(Conn3), Conn4=as.numeric(Conn4), Conn5=as.numeric(Conn5),
+           Conn6=as.numeric(Conn6)
+    )
+```
+
+### Data Table
+
+```{r}
+paged_table(data.students %>% select(!Email))
+```
+
+This data frame includes a wealth of information. For each student we have:
+
+* `Loc<sub>t</sub>`, `Dorm<sub>t</sub>`: Their approximate location through various time periods `t` in 2020, and their dorm in the Spring and Fall semesters if applicable.
+* `Place<sub>i</sub>.n`, `Place<sub>i</sub>.t`: A list of Yale or Yale-adjacent places which either has been a site for meaningful experiences in the Fall semester or which that student has recently been nostalgic for Given by the location name and whether it is physical or virtual, up to `i=10`.
+* `Conn<sub>t</sub>`: Students' reported feelings of being connected to other people in Stiles through various time periods in 2020.
+* Student data: year, email address (optional), enrollment status, and an internal ID given by Qualtrics.
+
+Note, however, that there remain some discrepancies in the location and place data. We will want to programatically convert location names (e.g. "Ashley's Ice Cream") to GPS coordinates, and some by-hand reformatting will be necessary to specify precise locations. Also note that some respondents chose "Off-Campus" for their dorm when the more correct option was "Not in New Haven."
+
+As a first step, we specify a precise location name for the Spring and Fall semesters (pre-break) by inferring from dorm data.
+
+```{r}
+data.students <- data.students %>%
+    mutate(Loc1 = case_when(
+        grepl("Stiles", Dorm1) ~ "Ezra Stiles College New Haven",
+        grepl("Lawrance", Dorm1) ~ "Lawrance Hall New Haven",
+        T ~ Loc1
+    )) %>%
+    mutate(Loc5 = case_when(
+        grepl("Stiles", Dorm5) ~ "Ezra Stiles College New Haven",
+        grepl("Lawrance", Dorm5) ~ "Lawrance Hall New Haven",
+        T ~ Loc5
+    ))
+```
+
+## Meaningful/Nostalgic Places
+
+For the **Finding and Remembering Meaning** page, we want to work with a dataset which focuses on each *place* rather than each student. Note that the meaning/nostalgia "Place" data above remains quite ungainly: the survey has a fixed number of inputs expecting up to 10 places, resulting in 20 columns total per student. Hence, we $\text{l e n g t h e n}$ the data by pivoting the Place column-pairs to individual rows.
+
+```{r}
+data.places <- data.students %>%
+    # Work only with Place data and (internal) student id
+    select(ID, Place1.n, Place1.t, Place2.n, Place2.t, Place3.n, Place3.t,
+           Place4.n, Place4.t, Place5.n, Place5.t, Place6.n, Place6.t, Place7.n,
+           Place7.t, Place8.n, Place8.t, Place9.n, Place9.t, Place10.n, Place10.t
+    ) %>%
+    # https://tidyr.tidyverse.org/articles/pivot.html#multiple-observations-per-row-1
+    pivot_longer(!ID,
+                 names_to=c("order", ".value"),
+                 names_pattern="Place(.)\\.(.)"
+    ) %>%
+    # Clean up
+    rename(Name=n, Type=t) %>%
+    filter(!is.na(Name)) %>%
+    mutate(order=as.numeric(order))
+```
+
+### Data Table
+
+```{r}
+paged_table(data.places)
+```
+
+Note that, as with the location data, some hand cleaning will be necessary in order to specify precise locations for geocoding (converting location name/address to GPS coordinates).
+
+```{r eval=F, echo=F}
+# Kept in this notebook for posterity, but not actually needed or used for Moose Mapping.
+places_list <- function(Place1, Place1.t, Place2, Place2.t, Place3, Place3.t,
+    Place4, Place4.t, Place5, Place5.t, Place6, Place6.t, Place7, Place7.t,
+    Place8, Place8.t, Place9, Place9.t, Place10, Place10.t, ...) {
+    # https://github.com/jennybc/row-oriented-workflows/blob/master/ex06_runif-via-pmap.md reference on pmap
+    places <- list()
+    j <- 1
+    for (i in 1:10) {
+        place_i <- eval(as.name(paste("Place", i, sep="")))
+        place_i.t <- eval(as.name(paste("Place", i, ".t", sep="")))
+        # Eval https://stackoverflow.com/questions/9057006/getting-strings-recognized-as-variable-names-in-r
+        if (!is.na(place_i)) {
+            places[[j]] <- c(name=place_i, is.physical=(!is.na(place_i.t) & place_i.t=="Physical"))
+            j <- j + 1
+        }
+    }
+    return(places)
+}
+```
+
+## Housing Counts
+
+For the **Missing Moose** page, we visualize the change in housing density from Spring to Fall. The following data summary was provided by Ezra Stiles College to help with this section. As above, we pivot the data longer to make it easier to use in visualizations.
+
+```{r}
+# Read housing counts
+data.housing_wide <- read.csv("data/housing_S20_F20_wide.csv")
+paged_table(data.housing_wide)
+```
+
+```{r}
+# Lengthen housing counts
+data.housing_long <- data.housing_wide %>%
+    pivot_longer(!Term,
+                 names_to="Entryway",
+                 values_to="Count")
+paged_table(data.housing_long)
+```
+
+## Before we move on...
+
+We have now done all that we can do before having to manually clean the Location and Place data! The relevant files are saved:
+
+```{r eval=F}
+#t <- format(Sys.time(), "%Y%m%d_%H%M%S")
+t <- "20201216_104624"
+write.csv(data.students, paste("data/students_", t, ".csv", sep=""), row.names=F)
+write.csv(data.places, paste("data/places_", t, ".csv", sep=""), row.names=F)
+write.csv(data.housing_long, "data/housing_S20_F2020_long.csv", row.names=F)
+```
+
+Lastly: the full and original survey data is not public in order to respect students' privacy. Email me at [cove.geary@yale.edu](mailto:cove.geary@yale.edu) if you have any questions.

@@ -1,0 +1,238 @@
+---
+title: "Data Formatting & Augmentation"
+output:
+    distill::distill_article:
+        toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=F}
+library(tidyverse)
+library(ggmap)
+```
+
+## Prep for Mapping Moose
+
+Some of the specifying was done previously The rest had to be done by hand. Here's what I did. Student data:
+
+* Reformat location data (Loc1, Loc2, etc) to be specific enough for geocoding
+* Fix some spots where students write-in their own version of "NA"
+* TODO Fix wrong entries of "Off-campus" and "Not in New Haven" and make sure that there aren't wrongful NAs.
+
+Did this stuff by hand bc Qualtrics doesn't have good address validation, sad, and some locations were specific (e.g. "Ezra Stiles Library").
+
+```{r}
+t <- "20201216_104624"
+data.students.loc <- read.csv(paste("data/students_", t, "_locclean.csv", sep="")) %>%
+    select(-c(Email, starts_with("Place"), Duration)) %>%
+    mutate(Housing.F20=case_when(  # Couldn't do this on the previous page bc data wasn't clean
+            grepl("Stiles", Dorm5) ~ "On-campus Stiles",
+            grepl("Vanderbilt|LW", Dorm5) ~ "On-campus OC",
+            Dorm5 == "Off-campus" ~ "Off-campus",
+            Dorm5 == "Not in New Haven" ~ "Remote",
+            T ~ Dorm5))
+```
+
+### Epochs & Waypoints, Lengthening; Connectedness
+
+First: for each time period ("epoch"), students could list an arbitrary number of locations in which they resided over that time. Let's expand those places into new columns ("waypoints"), each named $\text{Loc}_{e,w}$ where $e$ is the epoch (time period) and $w$ is the numbered waypoint. For the sake of these visualizations, I assume that the waypoints are equally spaced in time. This is interpolation is obviously not the case, but seems a reasonable compromise for not making respondents fill in every single precise date.
+
+```{r}
+# Given a vector of strings representing locations, returns the jth location if
+# available, else the last location in the vector. Used to "extract" locations
+# after the original data has been split with str_split.
+extract_location <- function(vec, j) {
+    if (length(vec) >= j) {
+        return(trimws(vec[j]))
+    } else {
+        return(trimws(vec[length(vec)]))
+    }
+}
+extract_location.V <- Vectorize(extract_location)
+
+# Expand waypoints into new columns for each epoch. For each epoch, the number of
+# waypoints is the maximum number of locations (separated by ";") that any
+# respondent lists. For responses which list fewer locations than the maximum at
+# that time period, duplicte those locations through the remaining waypoints as
+# necesary.
+is <- c(1, 2, "2.5", 3, 4, 5, 6)
+for (i in is) {
+    # Split each epoch of locations into a vector by the ";" delimiter.
+    loc <- paste("Loc", i, sep="")
+    data.students.loc <- data.students.loc %>%
+        mutate(across(.data[[loc]], str_split, pattern=";"))
+    # Extract those vectors into new waypoint columns, duplicating information
+    # when necessary.
+    n_waypoints <- max(sapply(map(data.students.loc[[loc]], length), max))  # [1]
+    for (j in 1:n_waypoints) {
+        loc_j <- paste(loc, "_", j, sep="")
+        data.students.loc <- data.students.loc %>%
+            mutate("{loc_j}" := extract_location.V(.data[[loc]], j))  # [2]
+    }
+}
+data.students.loc <- data.students.loc %>% select(-c(Loc1, Loc2, Loc2.5, Loc3, Loc4, Loc5, Loc6))
+# [1] https://stackoverflow.com/questions/11498155/by-commandto-find-out-the-maximum-number-from-a-list
+# [2] https://dplyr.tidyverse.org/reference/dplyr_data_masking.html#dot-dot-dot-
+
+# Colnames for each precise time should be "LocE_W"
+colnames(data.students.loc)
+```
+
+Next: we LENGTHEN that stuff :-). Do it for connectedness, also, so we can merge data.
+
+```{r}
+# Lengthen locations through Epoch and Waypoint
+data.locations <- data.students.loc %>%
+    select(-c(Conn1:Conn6)) %>%
+    pivot_longer(Loc1_1:Loc6_5,
+                 names_to=c("Epoch", "Waypoint"),
+                 names_pattern="Loc(.*)_(.)",
+                 values_to="Address")
+# Lengthen connectedness through Epoch (waypoint data not collected)
+data.connectedness <- data.students.loc %>%
+    select(-c(Loc1_1:Loc6_5)) %>%
+    pivot_longer(Conn1:Conn6,
+                 names_to="Epoch",
+                 names_pattern="Conn(.*)",
+                 values_to="Connectedness")
+
+# Merge them together, duplicating "connectedness" across waypoints and both
+# weeks of Spring break (epochs 2, 2.5).
+get_connectedness <- function(epoch, id) {
+    return(as.numeric(data.connectedness %>%
+                filter(Epoch==ifelse(epoch=="2.5", "2", epoch) & ID==id) %>%
+                select(Connectedness))
+    )
+}
+get_connectedness.V <- Vectorize(get_connectedness)
+
+data.locations.conn <- data.locations %>%
+    mutate(Connectedness=get_connectedness.V(Epoch, ID))
+```
+
+```{r}
+write.csv(data.connectedness, paste("data/connectedness_", t, ".csv", sep=""))
+```
+
+Finally we'll add in a couple of ways to help the visualizations make a bit more sense out of the Epoch/Waypoint nomenclature. In one we'll convert Epoch/Waypoint to days of the year (from 1 to 365), and in another just a string combination of the Epoch/Waypoint labels.
+
+```{r}
+# Thanks to http://mistupid.com/calendar/dayofyear.htm for converting dates to
+# days of the year.
+epoch_days <- c("1"=13, "2"=67, "2.5"=76, "3"=83, "4"=128, "5"=244, "6"=327, "7"=365)
+n_waypoints <- c("1"=1, "2"=4, "2.5"=2, "3"=1, "4"=4, "5"=3, "6"=5)  # hardcoded
+epoch_lengths <- epoch_days[2:8] - epoch_days[1:7]
+names(epoch_lengths) <- names(n_waypoints)
+
+data.locations.conn <- data.locations.conn %>%
+    # Compute day of the year
+    mutate(days_no_waypt=epoch_days[Epoch]) %>%
+    mutate(waypt_duration=round(
+        (epoch_lengths[Epoch] / n_waypoints[Epoch]) * (as.numeric(Waypoint) - 1)
+    )) %>%
+    mutate(Day=days_no_waypt+waypt_duration) %>%
+    select(-c(days_no_waypt, waypt_duration)) %>%
+    # Simple label combination
+    mutate(TimeEW=paste("t", Epoch, "-", Waypoint, sep=""))
+```
+
+```{r eval=F, echo=F}
+# Also kept for posterity
+data.locations_long <- data.locations_long %>%
+    mutate(TimePrd=case_when(
+        Epoch == 1 ~ "Beginning S'20",
+        Epoch == 2 ~ "Spreak Wk1",
+        Epoch == 2.5~"Spreak Wk2",
+        Epoch == 3 ~ "S'20 after Spreak",
+        Epoch == 4 ~ "Summer",
+        Epoch == 5 ~ "Beginning F'20",
+        Epoch == 6 ~ "F'20 after Break",
+    )) %>%
+    mutate(TimeExact=paste(TimePrd, ".", Waypoint, sep=""))
+```
+
+### Geocoding
+
+All that work for just a few lines of code.
+
+```{r eval=F}
+data.locations.conn <- data.locations.conn %>%
+    # Could be made more efficient by only looking up unique locations
+    mutate_geocode(Address) %>%
+    st_as_sf(coords=c("lon", "lat"), crs=4326)  # Note that order should be LON, LAT
+
+saveRDS(data.locations.conn, file=paste("data/locations.conn_", t, ".rds", sep=""))
+```
+
+Converts to Simple Features, which we love <3. Final product in the table below.
+
+### Data Table
+
+```{r}
+data.locations.conn <- readRDS(paste("data/locations.conn_", t, ".rds", sep=""))
+paged_table(data.locations.conn)
+```
+
+## Prep for Nostalgia/Meaning
+
+Similarly, we want to geocode the "Place" data asking about nostalgia/meaning. However, as with the student Location data, we first needed to hand-clean the Place data in order to clarify certain locations. In addition, some places were removed for being vague or not specific enough, and some incorrect labels of Physical or Virtual were corrected.
+
+Note, however, that there are some special places which aren't lookup-able by Google or other geocoding services:
+
+* Stiles common room
+* Stiles dining hall
+* Stiles dorm
+* Stiles library
+* Stiles buttery
+* Stiles game room
+* Stiles kitchen
+* Stiles courtyard
+* Crescent courtyard
+
+These occurrences are separated from the table and mapped to coordinates by manual lookup data. The remaining physical locations are geocoded as above.
+
+```{r}
+data.places <- read.csv(paste("data/places_", t, "_locclean.csv", sep=""))  # Note new cleaned file
+```
+
+### Geocoding
+
+```{r}
+data.places.stiles <- data.places %>%
+    filter(Type=="Physical" & str_detect(Name, "(?i)stiles"))  # ?i is case-insensitive regex
+data.places.yale <- data.places %>%
+    filter(Type=="Physical" & !str_detect(Name, "(?i)stiles"))
+data.places.virt <- data.places %>%
+    filter(Type=="Virtual")
+```
+
+```{r}
+# Map stiles spots to GPS
+```
+
+```{r}
+# Automocatically geocode (google) all other spots to GPS
+data.places.yale <- data.places.yale %>%
+    mutate_geocode(Name)
+# Sanity check
+range(data.places.yale$lon[is.finite(data.places.yale$lon)])
+range(data.places.yale$lat[is.finite(data.places.yale$lat)])
+# Convert to simplefeatures
+data.places.yale <- data.places.yale %>%
+    st_as_sf(coords=c("lon", "lat"), crs=4326)
+```
+
+```{r}
+data.places.physical <- data.places.yale #rbind...
+saveRDS(data.places.physical, paste("data/places.physical_" , t, ".rds"))
+write.csv(data.places.virt, paste("data/places.virt_" , t, ".csv"), row.names=F)
+```
+
+(Virtual locations are a fun anomoly left for some other time :D)
+
+## Conclude
+
+Do a scatter matrix of all the variables
