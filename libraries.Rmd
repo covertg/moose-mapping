@@ -18,3 +18,4 @@ Thank you dear open source community <3
 * plotly
 * rnaturalearth
 * gganimate
+* Stamen maps

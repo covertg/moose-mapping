@@ -156,7 +156,7 @@ data.locations_long <- data.locations_long %>%
 
 ### Geocoding
 
-All that work for just a few lines of code.
+All that work for just a few lines of code. (Note: we don't actually geocode in production, else website generation would take a long time.)
 
 ```{r eval=F}
 data.locations.conn <- data.locations.conn %>%
@@ -190,6 +190,8 @@ Note, however, that there are some special places which aren't lookup-able by Go
 * Stiles game room
 * Stiles kitchen
 * Stiles courtyard
+* Stiles gym
+* Stiles music room
 * Crescent courtyard
 
 These occurrences are separated from the table and mapped to coordinates by manual lookup data. The remaining physical locations are geocoded as above.
@@ -211,22 +213,50 @@ data.places.virt <- data.places %>%
 
 ```{r}
 # Map stiles spots to GPS
+places.yale <- read.csv("data/yale.locations.csv")
+# Although this could be done with tidy functions (leaning heavily on case_when),
+# I think this approach is more readable and is much less repetitive. With small
+# data, the performance is no problem.
+get_yale_coord <- function(name, col) {
+    n <- case_when(
+        str_detect(name, "(?i)common") ~ "Common Room",
+        str_detect(name, "(?i)dining") ~ "Dining Hall",
+        str_detect(name, "(?i)dorm") ~ "Dorm",
+        str_detect(name, "(?i)library") ~ "Library",
+        str_detect(name, "(?i)buttery") ~ "Buttery",
+        str_detect(name, "(?i)game") ~ "Game Room",
+        str_detect(name, "(?i)kitchen") ~ "Kitchen",
+        str_detect(name, "(?i)crescent") ~ "Crescent Courtyard",
+        str_detect(name, "(?i)music") ~ "Music Room",
+        str_detect(name, "(?i)gym") ~ "Gym",
+        str_detect(name, "(?i)courtyard") ~ "Courtyard",
+        T ~ "Stiles"
+    )
+    return(places.yale %>% filter(Name==n) %>% select(col))
+}
+get_yale_coord.V <- Vectorize(get_yale_coord)
+
+data.places.stiles <- data.places.stiles %>%
+    mutate(lon=get_yale_coord.V(Name, "Lon")) %>%
+    mutate(lat=get_yale_coord.V(Name, "Lat"))
 ```
 
-```{r}
+(Once again, we don't geocode or save to disk in production.)
+
+```{r eval=F}
 # Automocatically geocode (google) all other spots to GPS
 data.places.yale <- data.places.yale %>%
     mutate_geocode(Name)
 # Sanity check
 range(data.places.yale$lon[is.finite(data.places.yale$lon)])
 range(data.places.yale$lat[is.finite(data.places.yale$lat)])
-# Convert to simplefeatures
-data.places.yale <- data.places.yale %>%
-    st_as_sf(coords=c("lon", "lat"), crs=4326)
 ```
 
-```{r}
-data.places.physical <- data.places.yale #rbind...
+```{r eval=F}
+# Merge & convert to simplefeatures
+data.places.physical <- data.places.yale %>%
+    rbind(data.places.stiles) %>%
+    st_as_sf(coords=c("lon", "lat"), crs=4326)
 saveRDS(data.places.physical, paste("data/places.physical_" , t, ".rds"))
 write.csv(data.places.virt, paste("data/places.virt_" , t, ".csv"), row.names=F)
 ```
@@ -234,5 +264,3 @@ write.csv(data.places.virt, paste("data/places.virt_" , t, ".csv"), row.names=F)
 (Virtual locations are a fun anomoly left for some other time :D)
 
 ## Conclude
-
-Do a scatter matrix of all the variables

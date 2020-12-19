@@ -12,69 +12,52 @@ knitr::opts_chunk$set(echo=T)
 
 ```{r echo=F}
 library(tidyverse)
-library(rnaturalearth)
-library(tigris)  # gives state data
 library(sf)
+library(ggmap)
 library(ggthemes)
 library(plotly)
-library(gganimate)  # also requires transformr
-library(osmdata)
 library(ggwordcloud)
 ```
 
 ```{r results="hide"}
+# Get Places data
 t <- "20201216_104624"
 data.places.physical <- readRDS(paste("data/places.physical_" , t, ".rds"))
-
-states <- states(class = "sf")
-ct <- states %>% filter(NAME=="Connecticut")
-```
-
-```{r}
-# Code adapted from that seen in Section
-nhv_bb <- getbb("New Haven United States")
-big_streets <- nhv_bb %>%
-    opq() %>%
-    add_osm_feature(key = "highway",
-                    value = c("motorway", "primary", "motorway_link", "primary_link")
-    ) %>%
-    osmdata_sf()
-med_streets <- nhv_bb %>%
-    opq() %>%
-    add_osm_feature(key = "highway",
-                    value = c("secondary", "tertiary", "secondary_link", "tertiary_link")
-    ) %>%
-    osmdata_sf()
-small_streets <- nhv_bb %>%
-    opq() %>%
-    add_osm_feature(key = "highway",
-                    value = c("residential", "living_street", "unclassified", "service", "footway")
-    ) %>%
-    osmdata_sf()
-```
-
-```{r layout="l-screen-inset"}
-p_jitter <- st_jitter(data.places.physical, factor=0.00005)
-x.lim <- c(-72.939, -72.903)
-y.lim <- c(41.302, 41.332)
-# https://stackoverflow.com/questions/51566685/plotting-a-kernel-map-based-on-points-with-geom-sf
+# Define bounding box for our region of New Haven (will be the default zoom
+# level of our visualization), but also define a slightly larger bounding box
+# to give some more border in case viewers want to zoom out.
+x.lim0 <- c(-72.939, -72.903)
+y.lim0 <- c(41.302, 41.332)
+x.lim <- x.lim0 + 0.04 * c(-1, 1)
+y.lim <- y.lim0 + 0.02 * c(-1, 1)
+p_jitter <- data.places.physical %>%
+    st_crop(xmin=x.lim[1], xmax=x.lim[2], ymin=y.lim[1], ymax=y.lim[2]) %>%
+    st_jitter()
 p_jitter['x'] <- map_dbl(p_jitter$geometry, ~.[1])
 p_jitter['y'] <- map_dbl(p_jitter$geometry, ~.[2])
+# Get map data
+# newhaven_lowres <- get_stamenmap(bbox=c(left=x.lim[1], right=x.lim[2], bottom=y.lim[1], top=y.lim[2]), zoom=15)
+# newhaven <- get_stamenmap(bbox=c(left=x.lim0[1], right=x.lim0[2], bottom=y.lim0[1], top=y.lim0[2]), zoom=17)
+# saveRDS(newhaven_lowres, "data/newhaven_lowres.rds", compress=F)
+# saveRDS(newhaven, "data/newhaven.rds", compress=F)
+newhaven_lowres <- readRDS("data/newhaven_lowres.rds")
+newhaven <- readRDS("data/newhaven.rds")
+```
 
-g <- ggplot(data=p_jitter) +
-    geom_sf(data=ct) +
-    geom_sf(data=big_streets$osm_lines, size=.4, alpha=.3, color="black") +
-    geom_sf(data=med_streets$osm_lines, size=.3, alpha=.5, color="black") +
-    geom_sf(data=small_streets$osm_lines, size=.2, alpha=.3, color="black") +
-    geom_density_2d(aes(x=x, y=y), size=0.2) +  # Sadly, plotly isn't ready for density_2d_filled
-    geom_sf(color="yellow", alpha=0.9) +
-    lims(x=x.lim, y=y.lim) +
+Simplefeatures are great, but we actually end up using rasters. This allows the viewer to see precise building outlines on the map (while remaining feasible to render and interact with on a normal computer/browser). In addition, geom_density_2d() needs x,y data rather than simplefeatures.^[https://stackoverflow.com/questions/51566685/plotting-a-kernel-map-based-on-points-with-geom-sf]
+
+```{r layout="l-screen-inset"}
+g <- ggmap(newhaven_lowres) +
+    inset_ggmap(newhaven) +
+    geom_density_2d(data=p_jitter, aes(x=x, y=y), size=0.4, alpha=0.8, bins=15) + # Sadly, plotly isn't ready for density_2d_filled
+    geom_point(data=p_jitter, aes(x=x, y=y), color="yellow", alpha=0.9, size=0.6) +
+    lims(x=x.lim0, y=y.lim0) +
     theme(axis.text=element_blank(), axis.ticks=element_blank(), axis.title=element_blank())
 
 ggplotly(g)
 ```
 
-Note the little Koffee? bump. And a good little cluster around East Rock (and one West Rock).
+Not a huge surprise: very large cluster around Ezra Stiles College. Note the little Koffee? bump. And a good little cluster around East Rock (and one West Rock).
 
 ## Virtual realm
 
@@ -97,3 +80,43 @@ ggplot(places, aes(label=Name, angle=angle, size=size)) +
     theme_tufte()
 ```
 
+```{r eval=F, echo=F}
+# Defunct code since moving to raster maps
+library(osmdata)
+library(rnaturalearth)
+library(tigris)  # gives state data
+
+# Code adapted from that seen in Section
+nhv_bb <- getbb("New Haven United States")
+big_streets <- nhv_bb %>%
+    opq() %>%
+    add_osm_feature(key = "highway",
+                    value = c("motorway", "primary", "motorway_link", "primary_link")
+    ) %>%
+    osmdata_sf()
+med_streets <- nhv_bb %>%
+    opq() %>%
+    add_osm_feature(key = "highway",
+                    value = c("secondary", "tertiary", "secondary_link", "tertiary_link")
+    ) %>%
+    osmdata_sf()
+small_streets <- nhv_bb %>%
+    opq() %>%
+    add_osm_feature(key = "highway",
+                    value = c("residential", "living_street", "unclassified", "service", "footway")
+    ) %>%
+    osmdata_sf()
+
+states <- states(class = "sf")
+ct <- states %>% filter(NAME=="Connecticut")
+
+g <- ggplot(data=p_jitter) +
+    geom_sf(data=ct) +
+    geom_sf(data=big_streets$osm_lines, size=.4, alpha=.3, color="black") +
+    geom_sf(data=med_streets$osm_lines, size=.3, alpha=.5, color="black") +
+    geom_sf(data=small_streets$osm_lines, size=.2, alpha=.3, color="black") +
+    geom_density_2d(aes(x=x, y=y), size=0.2, bins=20) +  # Sadly, plotly isn't ready for density_2d_filled
+    geom_point(aes(x=x, y=y), color="yellow", alpha=0.9) +  # Use geom_point for nice plotly hovers
+    lims(x=x.lim, y=y.lim) +
+        theme(axis.text=element_blank(), axis.ticks=element_blank(), axis.title=element_blank())
+```
