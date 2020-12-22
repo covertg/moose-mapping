@@ -2,7 +2,7 @@ name: "mapping-moose"
 title: "ES College in Diaspora"
 description: |
   Visualizing our community in the face of COVID-19
-exclude: ["data", "README.md"]
+exclude: ["data", "README.md", "LICENSE.md"]
 favicon: "site-data/favicon/favicon.ico"
 # google_analytics: "na"
 

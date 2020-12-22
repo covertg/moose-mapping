@@ -32,29 +32,37 @@ x.lim <- x.lim0 + 0.04 * c(-1, 1)
 y.lim <- y.lim0 + 0.02 * c(-1, 1)
 p_jitter <- data.places.physical %>%
     st_crop(xmin=x.lim[1], xmax=x.lim[2], ymin=y.lim[1], ymax=y.lim[2]) %>%
-    st_jitter()
-p_jitter['x'] <- map_dbl(p_jitter$geometry, ~.[1])
-p_jitter['y'] <- map_dbl(p_jitter$geometry, ~.[2])
+    st_jitter(factor=0.001)
+p_jitter['lon'] <- map_dbl(p_jitter$geometry, ~.[1])
+p_jitter['lat'] <- map_dbl(p_jitter$geometry, ~.[2])
 # Get map data
 # newhaven_lowres <- get_stamenmap(bbox=c(left=x.lim[1], right=x.lim[2], bottom=y.lim[1], top=y.lim[2]), zoom=15)
+# newhaven_medres <- get_stamenmap(bbox=c(left=x.lim[1], right=x.lim[2], bottom=y.lim[1], top=y.lim[2]), zoom=16)
 # newhaven <- get_stamenmap(bbox=c(left=x.lim0[1], right=x.lim0[2], bottom=y.lim0[1], top=y.lim0[2]), zoom=17)
 # saveRDS(newhaven_lowres, "data/newhaven_lowres.rds", compress=F)
+# saveRDS(newhaven_medres, "data/newhaven_medres.rds", compress=F)
 # saveRDS(newhaven, "data/newhaven.rds", compress=F)
 newhaven_lowres <- readRDS("data/newhaven_lowres.rds")
+newhaven_medres <- readRDS("data/newhaven_medres.rds")
 newhaven <- readRDS("data/newhaven.rds")
 ```
 
 Simplefeatures are great, but we actually end up using rasters. This allows the viewer to see precise building outlines on the map (while remaining feasible to render and interact with on a normal computer/browser). In addition, geom_density_2d() needs x,y data rather than simplefeatures.^[https://stackoverflow.com/questions/51566685/plotting-a-kernel-map-based-on-points-with-geom-sf]
 
-```{r layout="l-screen-inset"}
+```{r layout="l-page"}
 g <- ggmap(newhaven_lowres) +
+    inset_ggmap(newhaven_medres) +
     inset_ggmap(newhaven) +
-    geom_density_2d(data=p_jitter, aes(x=x, y=y), size=0.4, alpha=0.8, bins=15) + # Sadly, plotly isn't ready for density_2d_filled
-    geom_point(data=p_jitter, aes(x=x, y=y), color="yellow", alpha=0.9, size=0.6) +
+    # Sadly, plotly isn't ready for density_2d_filled
+    geom_density_2d(data=p_jitter, aes(x=lon, y=lat), size=0.4, alpha=0.8, bins=15) +
+    geom_point(data=p_jitter, aes(x=lon, y=lat, text=Name),
+               shape=21, fill="yellow", color="black", size=0.8, stroke=0.1, alpha=0.8) +
     lims(x=x.lim0, y=y.lim0) +
+    theme_tufte() +
     theme(axis.text=element_blank(), axis.ticks=element_blank(), axis.title=element_blank())
 
-ggplotly(g)
+# https://stackoverflow.com/questions/34605919/formatting-mouse-over-labels-in-plotly-when-using-ggplotly
+ggplotly(g, tooltip="text", height=400)
 ```
 
 Not a huge surprise: very large cluster around Ezra Stiles College. Note the little Koffee? bump. And a good little cluster around East Rock (and one West Rock).
@@ -68,7 +76,7 @@ data.places.virt <- read.csv(paste("data/places.virt_" , t, ".csv"))
 
 The venerable word cloud lives to see another day:
 
-```{r}
+```{r layout="l-screen"}
 set.seed(2021)
 places <- data.places.virt %>%
     mutate(angle = 90 * sample(c(0, 1), n(), replace=T, prob=c(60, 40))) %>%
@@ -76,7 +84,7 @@ places <- data.places.virt %>%
     
 ggplot(places, aes(label=Name, angle=angle, size=size)) +
     # https://cran.r-project.org/web/packages/ggwordcloud/vignettes/ggwordcloud.html
-    geom_text_wordcloud_area(family="Serif") +
+    geom_text_wordcloud_area(eccentricity=0.4, family="Serif")+
     theme_tufte()
 ```
 

@@ -10,7 +10,6 @@ knitr::opts_chunk$set(echo = T)
 ```{r echo=F}
 library(tidyverse)
 library(rnaturalearth)
-library(tigris)  # gives state data
 library(sf)
 library(ggthemes)
 library(plotly)
@@ -25,26 +24,31 @@ data.locations.conn <- readRDS(paste("data/locations.conn_", t, ".rds", sep=""))
 ```
 
 ```{r results='hide'}
-world <- ne_countries(scale = "medium", returnclass = "sf")
-states <- states(class = "sf")
+world <- ne_countries(scale="large", returnclass="sf")
+usa_states <- ne_states("united states of america", returnclass="sf")
 ```
 
 There are two similar approaches. The software library plotly offers a pretty nice way to turn ggplots into interactive visualizations which can can animate through time. Unfortunately, it currently appears to be a limitation that the animation slider's breakpoints must be evenly spaced.^[https://stackoverflow.com/questions/65334985/how-to-customize-plotly-r-ggplot2-animation-breakpoints-frame-spacing-duration] This is undesirable for us, since our waypoints and epochs are not evenly-spaced. Using day of the year seems misleading in this case, and a full English description of the epoch/waypoint is too long to fit, so we use an abbreviated Epoch/Waypoint label. Refer to the table below for the date/season itself.
 
 ```{r layout="l-body-outset"}
-g <- ggplot(world) +
-    geom_sf(fill="white") +
-    geom_sf(data=data.locations.conn, aes(frame=TimeEW, ids=ID, color=Connectedness)) +
-    scale_color_distiller(palette="PuBu", direction=1) +  # https://ggplot2.tidyverse.org/reference/scale_brewer.html
-    theme_tufte()
+bbox <- st_bbox(data.locations.conn)
+l_jitter <- data.locations.conn %>%
+    st_jitter(factor=0.0002) %>%
+    mutate(Year=as.factor(Year))  # Setting year as factor lets us toggle year in the plotly map
 
-p <- ggplotly(g) %>%
-    animation_opts(redraw=F, easing="sin-out", frame=800) %>%
-    animation_slider(
-        currentvalue=list(font=list(color="black"), suffix=" (see below)")
-    )
+g <- ggplot(data=NULL) +
+    geom_sf(data=world, fill="white", color="black", size=0.4) +
+    geom_sf(data=usa_states, fill="white", color="grey", size=0.4) +
+    geom_sf(data=l_jitter, aes(frame=TimeEW, ids=ID, color=Year), alpha=0.9) +
+    scale_color_brewer(palette="Spectral") +
+    lims(x=c(bbox$xmin - 1, bbox$xmax + 1), y=c(bbox$ymin - 1, bbox$ymax + 1)) +
+    labs(title="Movements of Students in Stiles through 2020", subtitle="Interactive map") +
+    theme_tufte() +
+    theme(axis.text=element_blank(), axis.ticks=element_blank(), axis.title=element_blank())
 
-p
+ggplotly(g, tooltip=c("Year", "Connectedness")) %>%
+    animation_opts(redraw=F, frame=800) %>%
+    animation_slider(currentvalue=list(prefix="Time ", font=list(color="black")))
 ```
 
 * t1 is before Spring Break (< 3/7)
@@ -58,6 +62,7 @@ p
 If we sacrifice the interactiveness, a more true-to-time visualization is given by ``gganimate``.
 
 ```{r}
+epoch_days <- c("1"=13, "2"=67, "2.5"=76, "3"=83, "4"=128, "5"=244, "6"=327, "7"=365)
 day2season <- function(d) {
     d <- as.numeric(d)
     if (d < epoch_days["2"])   return("Spring Semester, before Break")
@@ -73,16 +78,12 @@ day2date <- function(d) {
     return(format(as.Date(toString(round(d)), format = "%j", origin="12-31-2019"), "%b %d"))
 }
 
-g2 <- ggplot(world) +
-    geom_sf(fill="white") +
-    geom_sf(data=data.locations.conn, aes(color=Connectedness)) +
-    scale_color_distiller(palette="PuBu", direction=1) +
-    theme_tufte() +
-    labs(title = "{day2date(frame_time)} \t~ \t{day2season(frame_time)}") +
+g2 <- g +
+    labs(title="Movements of Students in Stiles through 2020",
+        subtitle="{day2date(frame_time)} \t~ \t{day2season(frame_time)}") +
     transition_time(Day) +
     ease_aes("sine-out")
 
 animate(g2, fps=10, nframes=260, end_pause=10)  # Requests an fps which divides 100
+# ? https://stackoverflow.com/a/61763614/14841573
 ```
-
-

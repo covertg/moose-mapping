@@ -28,7 +28,8 @@ data.connectedness <- data.connectedness %>%
 # "Jitter" values just a little bit, so it's easier to see overlapping points
 c_jitter <- data.connectedness %>%
     mutate(Day=jitter(Day, factor=1)) %>%  # x
-    mutate(Connectedness=jitter(Connectedness, factor=.5))  # y
+    mutate(Connectedness=jitter(Connectedness, factor=.5)) %>%  # y
+    mutate(Housing.F20=factor(Housing.F20, levels=c("On-campus Stiles", "On-campus OC", "Off-campus", "Remote")))
 ```
 
 ## Connectedness by graduation year
@@ -67,7 +68,7 @@ ggplotly(g)
 
 Focus on the Fall semester: what's going on in Day 327?
 
-# Connectedness by enrollment status in Fall 2020
+## Connectedness by enrollment status in Fall 2020
 ```{r}
 g <- ggplot(c_jitter, aes(x=Day, y=Connectedness, color=Enrolled, shape=Enrolled, group=ID)) +
     geom_line(alpha=0.25) +
@@ -80,6 +81,22 @@ ggplotly(g)
 ```
 
 Once again: helpful to look specifically at Fall 2020.
+
+## Small multiples
+
+```{r}
+g <- ggplot(c_jitter %>% filter(!is.na(Housing.F20)),
+            aes(x=Day, y=Connectedness, color=as.factor(Year), group=ID)) +
+    geom_line(alpha=0.5) +
+    geom_point(alpha=0.6) +
+    scale_y_continuous(breaks=1:10) +
+    scale_x_continuous(breaks=unique(data.connectedness$Day)) +
+    scale_color_colorblind() +
+    facet_grid(Housing.F20 ~ Enrolled) +
+    theme_tufte()
+ggplotly(g)
+```
+
 
 ## Guiding Questions
 
