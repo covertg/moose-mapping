@@ -19,3 +19,8 @@ Thank you dear open source community <3
 * rnaturalearth
 * gganimate
 * Stamen maps
+
+```{r}
+sessionInfo()
+```
+

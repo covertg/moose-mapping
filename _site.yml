@@ -2,7 +2,7 @@ name: "mapping-moose"
 title: "ES College in Diaspora"
 description: |
   Visualizing our community in the face of COVID-19
-exclude: ["data", "README.md", "LICENSE.md"]
+exclude: ["README", "LICENSE", "data"]
 favicon: "site-data/favicon/favicon.ico"
 # google_analytics: "na"
 
@@ -10,8 +10,8 @@ navbar:
   left:
     - text: "Code & Data"
       menu:
-        - text: "Data Cleaning & Introduction"
-          href: data_cleaning.html
+        - text: "Data Introduction & Cleaning"
+          href: data_intro.html
         - text: "Data Formatting & Augmentation"
           href: data_formatting.html
         - text: "Software Libraries"

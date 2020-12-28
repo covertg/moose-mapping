@@ -15,13 +15,15 @@ library(ggmap)
 library(rmarkdown)
 ```
 
+<!--Some data is also a handmade set of geographic polygons corresponding to the different dorms that have housed Stiles students.-->
+
 ## Prep for Mapping Moose
 
 Some of the specifying was done previously The rest had to be done by hand. Here's what I did. Student data:
 
 * Reformat location data (Loc1, Loc2, etc) to be specific enough for geocoding
 * Fix some spots where students write-in their own version of "NA"
-* TODO Fix wrong entries of "Off-campus" and "Not in New Haven" and make sure that there aren't wrongful NAs.
+* Fix wrong entries of "Off-campus" and "Not in New Haven" and make sure that there aren't wrongful NAs.
 
 Did this stuff by hand bc Qualtrics doesn't have good address validation, sad, and some locations were specific (e.g. "Ezra Stiles Library").
 

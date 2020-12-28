@@ -2068,7 +2068,8 @@ code span.wa { color: #bf0303; } /* Warning */
   </style>
   <style type="text/css">@import url('https://fonts.googleapis.com/css2?family=Alata');
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code');
-  @import url("https://cdn.jsdelivr.net/gh/vsalvino/computer-modern@main/fonts/serif.css"); /* Thank you https://github.com/vsalvino/computer-modern */
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+Pro');
+  /*@import url("https://cdn.jsdelivr.net/gh/vsalvino/computer-modern@main/fonts/serif.css");*/ /* Thank you https://github.com/vsalvino/computer-modern */
 
   html {
     /*-- Main font sizes --*/
@@ -2086,10 +2087,11 @@ code span.wa { color: #bf0303; } /* Warning */
     /*-- Specify custom fonts ~~~ must be imported above   --*/
     --heading-font:    "Alata", sans-serif;
     --mono-font:       "Fira Code", monospace;
-    --body-font:       "Computer Modern Serif", serif;
+    /*--body-font:       "Computer Modern Serif", serif;*/
+    --body-font:       "Source Serif Pro", serif;
     --navbar-font:     "Alata", sans-serif;
     /* Other vars */
-    --line-height:    1.2;
+    --line-height:    1.3;
   }
 
   /*-- ARTICLE METADATA --*/
@@ -2159,7 +2161,7 @@ code span.wa { color: #bf0303; } /* Warning */
       padding-top: 5px;
       padding-bottom: 4px;
   }
-  div.sourceCode {
+  div.sourceCode, div.figure {
       margin: 0 0 0 1em;
   }
 
@@ -2172,7 +2174,7 @@ code span.wa { color: #bf0303; } /* Warning */
       font-size: 2em;
   }
   d-article h3 {
-      font-size: 1.17em;
+      font-size: 1.3em;
   }
 
   /* Correctly color dropdowns in the nav bar */
@@ -2221,8 +2223,17 @@ code span.wa { color: #bf0303; } /* Warning */
   }
 
   /* Header font in Table of Contents */
-  .d-contents ul {
+  /*.d-contents ul {
       font-family: var(--heading-font);
+  }*/
+
+  /* Color links blue for higher contrast */
+  d-article p a {
+      color: blue;
+  }
+  /* Remove div which creates a faux margin for the first heading when there is a table of contents */
+  .layout-chunk {
+      display: none;
   }</style>
   <style type="text/css">
   /* base style */
@@ -2404,7 +2415,7 @@ Code &amp; Data
 <span class="down-arrow">&#x25BE;</span>
 </button>
 <div class="nav-dropdown-content">
-<a href="data_cleaning.html">Data Cleaning &amp; Introduction</a>
+<a href="data_intro.html">Data Introduction &amp; Cleaning</a>
 <a href="data_formatting.html">Data Formatting &amp; Augmentation</a>
 <a href="libraries.html">Software Libraries</a>
 </div>
@@ -2436,17 +2447,17 @@ Code &amp; Data
 <div class="d-article">
 <p>In early March of 2020, Yale students were preparing for their Spring Break. Many were intrigued to receive an email from Marvin Chun, Dean of Students, recommending that travelers “consider bringing any items you will want with you if your return to campus is delayed” due to possible disruptions from the novel coronavirus. Naïvely, few of us thought much of it. With March 10—the next Tuesday and the first week of break—came news that school would be moving to an entirely virtual model. Nearly all students would need to vacate campus by March 15.</p>
 <p>The months that followed have brought hardship in myriad ways, and often in immense degree. Yet the Spring semester at Yale eventually concluded, ending for many not with a bang but a whimper, with some security proffered up by the College adopting a Universal Pass/Fail grading system.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> As Summer too came and passed, Yale tentatively reopened in the Fall, in spite of and in light of the COVID-19 pandemic, welcoming back some students to a modified campus environment.</p>
-<p>—Jarringly, life continues hand-in-hand with the augmented concerns of staying safe and attending to even our most basic needs. This project seeks to tap into this dissonance by visualizing certain aspects of Yale students’ experiences in 2020: their movements, their reflections on place, their connection to their Residential College.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> For indeed it has been a year of compromises: in the Fall semester, the dorms ran at approximately 40% capacity<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> while the Yale community saw 360 positive COVID-19 cases;<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a> a whole new class of first-years was welcomed onto campus while the sophomores were excluded; seniors and many juniors took to the surrounding off-campus New Haven area in droves; and many in all classes chose to take a Leave of Absence, putting their education on pause. The first-years will likely be welcomed back in the Fall of 2021, meaning a nine-month hiatus in their time physically at Yale, while the sophomore class may soon end their ten-month hiatus in the Spring of 2021.</p>
-<p>And yet there has been good in this time, and there has certainly been newness. The reality of the pandemic has forced us to reinspect what <em>friendship</em> and <em>community</em> means, and to experiment new ways of enacting it. The verb <em>zoom</em> quickly took on entirely new meaning, and the physical boundaries of our conception of <em>place</em> is at once disintegrating and coming into sharper, newly-appreciated focus. Many first-years have grown to call Yale their <em>home</em> for the very first time; we have all been finding meaning in places old and new, those physical and those virtual; and we have also been leaning on each other. Indeed we have been living. And in my residential college, the focus of this project, post-pandemic 2020 has seen a passing of the torch for both the Dean<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a> and Head of College<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a>.</p>
-<p>This project focuses on Ezra Stiles College, one of the fourteen colleges at Yale, and a community dear to the author’s own heart. Through a variety of mapping and other data visualizations, it probes the questions: How has community been realized in 2020? How has it been interrupted? Where even is “the herd?”<a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a></p>
 <div class="layout-chunk" data-layout="l-body">
 <div class="figure"><span id="fig:unnamed-chunk-1"></span>
-<img src="site-data/courtyard_20200828.jpg" alt="Pictured: at the beginning of the Fall semester, students sit in the Stiles courtyard in spray-painted social-distancing circles. Not pictured: the Stiles Tower (background) is entirely void of students in this term. Captured 8/24/2020." width="1466" />
+<img src="site-data/courtyard_20200828.jpg" alt="At the beginning of the Fall semester, students sit in spray-painted social-distancing circles in the Stiles Courtyard. In the background, the Stiles Tower is entirely void of students this term. Captured 8/24/2020." width="1466" />
 <p class="caption">
-Figure 1: Pictured: at the beginning of the Fall semester, students sit in the Stiles courtyard in spray-painted social-distancing circles. Not pictured: the Stiles Tower (background) is entirely void of students in this term. Captured 8/24/2020.
+Figure 1: At the beginning of the Fall semester, students sit in spray-painted social-distancing circles in the Stiles Courtyard. In the background, the Stiles Tower is entirely void of students this term. Captured 8/24/2020.
 </p>
 </div>
 </div>
+<p>—Jarringly, life continues hand-in-hand with the augmented concerns of staying safe and attending to even our most basic needs. This project seeks to tap into this dissonance by visualizing certain aspects of Yale students’ experiences in 2020: their movements, their reflections on place, their connection to their Residential College.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> For indeed it has been a year of compromises: in the Fall semester, the dorms ran at approximately 40% capacity<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> while the Yale community saw 360 positive COVID-19 cases;<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a> a whole new class of first-years was welcomed onto campus while the sophomores were excluded; seniors and many juniors took to the surrounding off-campus New Haven area in droves; and many in all classes chose to take a Leave of Absence, putting their education on pause. The first-years will likely be welcomed back in the Fall of 2021, meaning a nine-month hiatus in their time physically at Yale, while the sophomore class may soon end their ten-month hiatus in the Spring of 2021.</p>
+<p>And yet there has been good in this time, and there has certainly been newness. The reality of the pandemic has forced us to reinspect what <em>friendship</em> and <em>community</em> means, and to experiment new ways of enacting it. The verb <em>zoom</em> quickly took on entirely new meaning, and the physical boundaries of our conception of <em>place</em> is at once disintegrating and coming into sharper, newly-appreciated focus. Many first-years have grown to call Yale their <em>home</em> for the very first time; we have all been finding meaning in places old and new, those physical and those virtual; and we have also been leaning on each other. Indeed we have been living. And in my residential college, the focus of this project, post-pandemic 2020 has seen a passing of the torch for both the Dean<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a> and Head of College<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a>.</p>
+<p>This project focuses on Ezra Stiles College, one of the fourteen colleges at Yale, and a community dear to the author’s own heart. Through a variety of mapping and other data visualizations, it probes the questions: How has community been realized in 2020? How has it been interrupted? Where even is “the herd?”<a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a></p>
 <h2 id="exploring-this-site">Exploring this Site</h2>
 <p>The top bar of this site can be used to navigate to each part of this project. The navigation bar lists all pages in a very lightly suggested order, but please explore at will: each page holds its own, offering a different data-driven perspective on the questions above.</p>
 <p>Some goals in the visualizations to come include <strong>(1)</strong> evoking both the <em>missingness</em> that I have felt and witnessed this year as well as the <em>meaning</em> which I have seen in the making; <strong>(2)</strong> to provide an avenue to better-understand the lived experiences of students in different cohorts, such as those enrolled and those on leave, those in New Haven and those remote, or those in different years; and <strong>(3)</strong> to show transparently how this narrative has emerged through coding and data wrangling. I hope that this site may provide some of each to the reader. Further, it is important to note that no programming experience whatsoever is necessary to interpret the data and visualizations herein. However, to the extent of <strong>(3)</strong>, the <strong>Code &amp; Data</strong> section includes the vast majority of the coding/data work involved, and I hope that interested readers may explore for themselves.</p>

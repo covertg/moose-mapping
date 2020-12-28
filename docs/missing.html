@@ -2071,7 +2071,8 @@ code span.wa { color: #bf0303; } /* Warning */
   </style>
   <style type="text/css">@import url('https://fonts.googleapis.com/css2?family=Alata');
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code');
-  @import url("https://cdn.jsdelivr.net/gh/vsalvino/computer-modern@main/fonts/serif.css"); /* Thank you https://github.com/vsalvino/computer-modern */
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+Pro');
+  /*@import url("https://cdn.jsdelivr.net/gh/vsalvino/computer-modern@main/fonts/serif.css");*/ /* Thank you https://github.com/vsalvino/computer-modern */
 
   html {
     /*-- Main font sizes --*/
@@ -2089,10 +2090,11 @@ code span.wa { color: #bf0303; } /* Warning */
     /*-- Specify custom fonts ~~~ must be imported above   --*/
     --heading-font:    "Alata", sans-serif;
     --mono-font:       "Fira Code", monospace;
-    --body-font:       "Computer Modern Serif", serif;
+    /*--body-font:       "Computer Modern Serif", serif;*/
+    --body-font:       "Source Serif Pro", serif;
     --navbar-font:     "Alata", sans-serif;
     /* Other vars */
-    --line-height:    1.2;
+    --line-height:    1.3;
   }
 
   /*-- ARTICLE METADATA --*/
@@ -2175,7 +2177,7 @@ code span.wa { color: #bf0303; } /* Warning */
       font-size: 2em;
   }
   d-article h3 {
-      font-size: 1.17em;
+      font-size: 1.3em;
   }
 
   /* Correctly color dropdowns in the nav bar */
@@ -2224,8 +2226,17 @@ code span.wa { color: #bf0303; } /* Warning */
   }
 
   /* Header font in Table of Contents */
-  .d-contents ul {
+  /*.d-contents ul {
       font-family: var(--heading-font);
+  }*/
+
+  /* Color links blue for higher contrast */
+  d-article p a {
+      color: blue;
+  }
+  /* Remove div which creates a faux margin for the first heading when there is a table of contents */
+  .layout-chunk {
+      display: none;
   }</style>
   <style type="text/css">
   /* base style */
@@ -2407,7 +2418,7 @@ Code &amp; Data
 <span class="down-arrow">&#x25BE;</span>
 </button>
 <div class="nav-dropdown-content">
-<a href="data_cleaning.html">Data Cleaning &amp; Introduction</a>
+<a href="data_intro.html">Data Introduction &amp; Cleaning</a>
 <a href="data_formatting.html">Data Formatting &amp; Augmentation</a>
 <a href="libraries.html">Software Libraries</a>
 </div>
