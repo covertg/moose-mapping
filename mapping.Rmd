@@ -19,7 +19,7 @@ library(gganimate)  # also requires transformr
 We want to animate people's locations over the past few months.
 
 ```{r}
-t <- "20201216_104624"
+t <- "20201227_235052"
 data.locations.conn <- readRDS(paste("data/locations.conn_", t, ".rds", sep=""))
 ```
 
@@ -86,4 +86,8 @@ g2 <- g +
 
 animate(g2, fps=10, nframes=260, end_pause=10)  # Requests an fps which divides 100
 # ? https://stackoverflow.com/a/61763614/14841573
+```
+
+```{r fig.cap='"Home is where the herd is", reads a poster outside the Stiles dining hall.', echo=F}
+knitr::include_graphics("site-data/home_herd.jpg")
 ```

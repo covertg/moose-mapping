@@ -16,15 +16,8 @@ library(plotly)
 
 ```{r}
 # Load data
-t <- "20201216_104624"
-data.connectedness <- readRDS(paste("data/locations.conn_", t, ".rds", sep="")) %>%
-    filter(Waypoint == 1) %>%  # Remove duplicated data in waypoints and epoch2.5
-    filter(Epoch != 2.5)
-# Augment an extra column to extend data through 2020 (365th day)
-data.connectedness <- data.connectedness %>%
-    rbind(data.connectedness %>%
-              filter(Epoch==6) %>%
-              mutate(Epoch=7, Day=365, TimeEW="t7-1"))
+t <- "20201227_235052"
+data.connectedness <- read.csv(paste("data/connectedness_", t, ".csv", sep=""))
 # "Jitter" values just a little bit, so it's easier to see overlapping points
 c_jitter <- data.connectedness %>%
     mutate(Day=jitter(Day, factor=1)) %>%  # x
@@ -70,7 +63,7 @@ Focus on the Fall semester: what's going on in Day 327?
 
 ## Connectedness by enrollment status in Fall 2020
 ```{r}
-g <- ggplot(c_jitter, aes(x=Day, y=Connectedness, color=Enrolled, shape=Enrolled, group=ID)) +
+g <- ggplot(c_jitter, aes(x=Day, y=Connectedness, color=Enrolled.F20, shape=Enrolled.F20, group=ID)) +
     geom_line(alpha=0.25) +
     geom_point(alpha=0.45) +
     scale_y_continuous(breaks=1:10) +
@@ -92,7 +85,7 @@ g <- ggplot(c_jitter %>% filter(!is.na(Housing.F20)),
     scale_y_continuous(breaks=1:10) +
     scale_x_continuous(breaks=unique(data.connectedness$Day)) +
     scale_color_colorblind() +
-    facet_grid(Housing.F20 ~ Enrolled) +
+    facet_grid(Housing.F20 ~ Enrolled.F20) +
     theme_tufte()
 ggplotly(g)
 ```

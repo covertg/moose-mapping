@@ -2069,10 +2069,9 @@ code span.wa { color: #bf0303; } /* Warning */
   /*-- Additional custom styles --*/
   /* Add any additional CSS rules below                      */
   </style>
-  <style type="text/css">@import url('https://fonts.googleapis.com/css2?family=Alata');
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code');
-  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+Pro');
-  /*@import url("https://cdn.jsdelivr.net/gh/vsalvino/computer-modern@main/fonts/serif.css");*/ /* Thank you https://github.com/vsalvino/computer-modern */
+  <style type="text/css">@import url('https://fonts.googleapis.com/css2?family=Alata&family=Fira+Code&family=Source+Serif+Pro&display=swap');
+  /* First serif font was computer modern, thanks https://github.com/vsalvino/computer-modern */
+  /*@import url("https://cdn.jsdelivr.net/gh/vsalvino/computer-modern@main/fonts/serif.css");*/
 
   html {
     /*-- Main font sizes --*/
@@ -2094,7 +2093,7 @@ code span.wa { color: #bf0303; } /* Warning */
     --body-font:       "Source Serif Pro", serif;
     --navbar-font:     "Alata", sans-serif;
     /* Other vars */
-    --line-height:    1.3;
+    --line-height:    1.5;
   }
 
   /*-- ARTICLE METADATA --*/
@@ -2139,15 +2138,13 @@ code span.wa { color: #bf0303; } /* Warning */
 
   /*-- Additional custom styles --*/
 
-  /* Slimmer line height */
+  /* Trimming whitespace (line height, margins, padding) */
   d-article, d-article h2, d-article h3, d-title h1, d-title p {
       line-height: 1;
   }
   d-article pre, d-article p, d-article ul, d-article ol {
       line-height: var(--line-height);
   }
-
-  /* Reduce margins, padding */
   d-title {
       padding: 6rem 0 1.5rem 0;
   }
@@ -2164,23 +2161,46 @@ code span.wa { color: #bf0303; } /* Warning */
       padding-top: 5px;
       padding-bottom: 4px;
   }
-  div.sourceCode {
+  div.sourceCode, div.figure {
       margin: 0 0 0 1em;
   }
-
-  d-article {
-      font-size: var(--body-size);
+  .layout-chunk {  /* Div creates a faux margin for the first heading when there is a TOC */
+      display: none;
   }
 
-  /* Relative header sizing (Distill doesn't theme h1) */
+  /* Fonts: header font in Table of Contents */
+  .d-contents ul {
+      font-family: var(--heading-font);
+  }
+  /* Fonts: relative header sizing (Distill doesn't theme h1) */
   d-article h2 {
       font-size: 2em;
   }
   d-article h3 {
       font-size: 1.3em;
   }
+  /* Fonts: apply cusom monotype font for <code> */
+  code {
+      font-family: var(--mono-font);
+  }
+  /* Fonts: make all standard article text the same size! (E.g. lists were larger than paragraphs) */
+  d-article {
+      font-size: var(--body-size);
+  }
 
-  /* Correctly color dropdowns in the nav bar */
+  /* Dataframes i.e. pagedtables */
+  .pagedtable {
+      font-family: var(--mono-font);
+  }
+  .pagedtable table th, .pagedtable table td, .pagedtable .pagedtable-footer {
+      font-size: var(--code-size);
+  }
+  .l-body { /* Don't let pagedtables overflow */
+      max-width: 100%;
+  }
+
+
+  /* Colors: correctly color dropdowns in the nav bar */
   .nav-dropdown .nav-dropbtn {
       color: var(--text-color);
   }
@@ -2196,13 +2216,9 @@ code span.wa { color: #bf0303; } /* Warning */
   .nav-dropdown-content a:hover {
       background-color: var(--bkgd-color);
   }
-
-  /* Monospace font for dataframes */
-  .pagedtable {
-      font-family: var(--mono-font);
-  }
-  .pagedtable table th, .pagedtable table td, .pagedtable .pagedtable-footer {
-      font-size: var(--code-size);
+  /* Colors: blue links for higher contrast */
+  d-article p a {
+      color: blue;
   }
 
   /* Increase width of page content */
@@ -2223,20 +2239,6 @@ code span.wa { color: #bf0303; } /* Warning */
           grid-template-columns: [screen-start] 1fr [page-start kicker-start] 65px [middle-start] 65px [text-start kicker-end] repeat(8, 92px) [text-end gutter-start] 65px [middle-end] 65px [page-end gutter-end] 1fr [screen-end];
           grid-column-gap: 16px;
       }
-  }
-
-  /* Header font in Table of Contents */
-  /*.d-contents ul {
-      font-family: var(--heading-font);
-  }*/
-
-  /* Color links blue for higher contrast */
-  d-article p a {
-      color: blue;
-  }
-  /* Remove div which creates a faux margin for the first heading when there is a table of contents */
-  .layout-chunk {
-      display: none;
   }</style>
   <style type="text/css">
   /* base style */
@@ -2448,16 +2450,21 @@ Code &amp; Data
 
 
 <div class="d-article">
+<div class="layout-chunk" data-layout="l-body">
+
+</div>
 <p>Thank you dear open source community &lt;3</p>
 <ul>
 <li>R, Rmarkdown</li>
 <li>Distill</li>
 <li>tidyverse, including ggplot</li>
+<li>gganimate, transformr</li>
+<li>ggmap</li>
 <li>ggthemes</li>
+<li>ggwordcloud</li>
 <li>simplefeatures / sf</li>
 <li>plotly</li>
 <li>rnaturalearth</li>
-<li>gganimate</li>
 <li>Stamen maps</li>
 </ul>
 <div class="layout-chunk" data-layout="l-body">
@@ -2478,14 +2485,44 @@ locale:
 [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
 
 attached base packages:
-[1] stats     graphics  grDevices utils     datasets  methods  
-[7] base     
+[1] tools     stats     graphics  grDevices utils     datasets 
+[7] methods   base     
+
+other attached packages:
+ [1] rnaturalearth_0.1.0 ggwordcloud_0.5.0   gganimate_1.0.7    
+ [4] rmarkdown_2.6       ggmap_3.0.0         plotly_4.9.2.2     
+ [7] sf_0.9-6            ggthemes_4.2.0      forcats_0.5.0      
+[10] stringr_1.4.0       dplyr_1.0.2         purrr_0.3.4        
+[13] readr_1.4.0         tidyr_1.1.2         tibble_3.0.4       
+[16] ggplot2_3.3.2       tidyverse_1.3.0    
 
 loaded via a namespace (and not attached):
- [1] compiler_4.0.3  magrittr_2.0.1  tools_4.0.3     htmltools_0.5.0
- [5] yaml_2.2.1      distill_1.1     stringi_1.5.3   rmarkdown_2.6  
- [9] downlit_0.2.1   knitr_1.30      stringr_1.4.0   xfun_0.19      
-[13] digest_0.6.27   rlang_0.4.9     evaluate_0.14  </code></pre>
+ [1] bitops_1.0-6        fs_1.5.0            lubridate_1.7.9.2  
+ [4] RColorBrewer_1.1-2  progress_1.2.2      httr_1.4.2         
+ [7] rprojroot_2.0.2     backports_1.2.1     R6_2.5.0           
+[10] KernSmooth_2.23-17  DBI_1.1.0           lazyeval_0.2.2     
+[13] colorspace_2.0-0    withr_2.3.0         sp_1.4-4           
+[16] prettyunits_1.1.1   tidyselect_1.1.0    downlit_0.2.1      
+[19] compiler_4.0.3      cli_2.2.0           rvest_0.3.6        
+[22] xml2_1.3.2          bookdown_0.21       scales_1.1.1       
+[25] classInt_0.4-3      digest_0.6.27       jpeg_0.1-8.1       
+[28] pkgconfig_2.0.3     htmltools_0.5.0     dbplyr_2.0.0       
+[31] highr_0.8           htmlwidgets_1.5.3   rlang_0.4.9        
+[34] readxl_1.3.1        rstudioapi_0.13     farver_2.0.3       
+[37] generics_0.1.0      jsonlite_1.7.2      crosstalk_1.1.0.1  
+[40] distill_1.1         magrittr_2.0.1      Rcpp_1.0.5         
+[43] munsell_0.5.0       fansi_0.4.1         lifecycle_0.2.0    
+[46] stringi_1.5.3       yaml_2.2.1          plyr_1.8.6         
+[49] grid_4.0.3          crayon_1.3.4        lattice_0.20-41    
+[52] haven_2.3.1         hms_0.5.3           magick_2.5.2       
+[55] knitr_1.30          pillar_1.4.7        rjson_0.2.20       
+[58] reprex_0.3.0        glue_1.4.2          evaluate_0.14      
+[61] data.table_1.13.4   modelr_0.1.8        tweenr_1.0.1       
+[64] png_0.1-7           vctrs_0.3.6         RgoogleMaps_1.4.5.3
+[67] cellranger_1.1.0    gtable_0.3.0        assertthat_0.2.1   
+[70] xfun_0.19           mime_0.9            broom_0.7.3        
+[73] e1071_1.7-4         class_7.3-17        viridisLite_0.3.0  
+[76] units_0.6-7         ellipsis_0.3.1     </code></pre>
 </div>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r distill-force-highlighting-css"><code class="sourceCode r"></code></pre></div>
 <!--radix_placeholder_article_footer-->

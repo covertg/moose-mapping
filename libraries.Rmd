@@ -8,19 +8,35 @@ output: distill::distill_article
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
+```{r echo=F}
+library(tidyverse)
+
+library(distill)
+library(gganimate)
+library(ggmap)
+library(ggthemes)
+library(ggwordcloud)
+library(plotly)
+library(rmarkdown)
+library(rnaturalearth)
+library(sf)
+library(tools)
+```
+
 Thank you dear open source community <3
 
 * R, Rmarkdown
 * Distill
 * tidyverse, including ggplot
+* gganimate, transformr
+* ggmap
 * ggthemes
+* ggwordcloud
 * simplefeatures / sf
 * plotly
 * rnaturalearth
-* gganimate
 * Stamen maps
 
 ```{r}
 sessionInfo()
 ```
-

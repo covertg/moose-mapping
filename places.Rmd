@@ -21,7 +21,7 @@ library(ggwordcloud)
 
 ```{r results="hide"}
 # Get Places data
-t <- "20201216_104624"
+t <- "20201227_235052"
 data.places.physical <- readRDS(paste("data/places.physical_" , t, ".rds"))
 # Define bounding box for our region of New Haven (will be the default zoom
 # level of our visualization), but also define a slightly larger bounding box
@@ -38,7 +38,7 @@ p_jitter['lat'] <- map_dbl(p_jitter$geometry, ~.[2])
 # Get map data
 # newhaven_lowres <- get_stamenmap(bbox=c(left=x.lim[1], right=x.lim[2], bottom=y.lim[1], top=y.lim[2]), zoom=15)
 # newhaven_medres <- get_stamenmap(bbox=c(left=x.lim[1], right=x.lim[2], bottom=y.lim[1], top=y.lim[2]), zoom=16)
-# newhaven <- get_stamenmap(bbox=c(left=x.lim0[1], right=x.lim0[2], bottom=y.lim0[1], top=y.lim0[2]), zoom=17)
+# newhaven <- get_stamenmap(bbox=c(left=x.lim[1], right=x.lim[2], bottom=y.lim[1], top=y.lim[2]), zoom=17)
 # saveRDS(newhaven_lowres, "data/newhaven_lowres.rds", compress=F)
 # saveRDS(newhaven_medres, "data/newhaven_medres.rds", compress=F)
 # saveRDS(newhaven, "data/newhaven.rds", compress=F)
@@ -62,7 +62,8 @@ g <- ggmap(newhaven_lowres) +
     theme(axis.text=element_blank(), axis.ticks=element_blank(), axis.title=element_blank())
 
 # https://stackoverflow.com/questions/34605919/formatting-mouse-over-labels-in-plotly-when-using-ggplotly
-ggplotly(g, tooltip="text", height=400)
+# ggplotly(g, tooltip="text", height=400)
+ggplotly(g, tooltip="text")
 ```
 
 Not a huge surprise: very large cluster around Ezra Stiles College. Note the little Koffee? bump. And a good little cluster around East Rock (and one West Rock).
@@ -70,8 +71,7 @@ Not a huge surprise: very large cluster around Ezra Stiles College. Note the lit
 ## Virtual realm
 
 ```{r}
-t <- "20201216_104624"
-data.places.virt <- read.csv(paste("data/places.virt_" , t, ".csv"))
+data.places.virt <- read.csv(paste("data/places.virt_" , t, ".csv", sep=""))
 ```
 
 The venerable word cloud lives to see another day:

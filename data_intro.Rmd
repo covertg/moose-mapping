@@ -16,7 +16,7 @@ library(rmarkdown)
 
 ## Overview
 
-Nearly all of the data originates from one of two sources: a Qualtrics survey disseminated to kind survey respondents (students) in Stiles, and some housing data from the college. While this project is a living document and is still taking in student responses, at current publication, 54 full student responses have been recorded.
+Nearly all of the data originates from one of two sources: a Qualtrics survey disseminated to kind survey respondents (students) in Stiles, and some housing data from the college. While this project is a living document and is still taking in student responses, at current publication, 71 student responses have been recorded.
 
 For the sake of tidiness, most of the coding setup and data wrangling for this project's visualizations will be developed in the following two pages. For all readers, the pages to come contain the ~raw data tables which can be explored, as well as an interpretation of the overall survey data. For those interested in following the code, these pages should also elucidate the various datasets and data formats employed.
 
@@ -29,7 +29,7 @@ A copy of the survey questions may be found [here](site-data/MooseMapping_Qualtr
 The data table below gives a first look at the Qualtrics survey responses! (Excepting a few personally-identifying data points.)
 
 ```{r}
-data.qualtrics <- read.csv("data/qualtrics_20201016_101500.csv") %>%
+data.qualtrics <- read.csv("data/qualtrics_20201227_233000.csv") %>%
     slice(3:n()) %>%  # First two rows do not have respondent data; remove them
     na_if("")  # Qualtrics saves NA in CSV as blank strings; reset those to NA
 
@@ -63,8 +63,8 @@ data.students <- data.qualtrics %>%
         # Useful Qualtrics data
         ID=ResponseId
     ) %>%
-    # Remove blank responses (empty Place1)
-    filter(!is.na(Place1.n)) %>%
+    # Remove 100% empty responses (empty Loc1)
+    filter(!is.na(Loc1) | !is.na(Loc6)) %>%
     # Set appropriate columns to numeric
     mutate(Year=as.numeric(Year), Conn1=as.numeric(Conn1), Conn2=as.numeric(Conn2),
            Conn3=as.numeric(Conn3), Conn4=as.numeric(Conn4), Conn5=as.numeric(Conn5),
@@ -84,6 +84,8 @@ data.students <- data.students %>%
     mutate(Loc5 = case_when(
         grepl("Stiles", Dorm5) ~ "Ezra Stiles College New Haven",
         grepl("Lawrance", Dorm5) ~ "Lawrance Hall New Haven",
+        grepl("Vanderbilt", Dorm5) ~ "Vanderbilt Hall New Haven",
+        grepl("LW", Dorm5) ~ "Lanman-Wright Hall New Haven",
         T ~ Loc5
     ))
 ```
@@ -146,14 +148,14 @@ data.places <- data.students %>%
     ) %>%
     # Clean up
     rename(Name=n, Type=t) %>%
-    filter(!is.na(Name) & Name != "N/A") %>%  # One student wrote-in "N/A"
+    filter(!is.na(Name)) %>%  # One student wrote-in "N/A"
     mutate(order=as.numeric(order))
 ```
 
 ### Data Table (Key Places)
 
 ```{r}
-paged_table(data.places, options=list(rows.print=25))
+paged_table(sample_n(data.places, n()), options=list(rows.print=25))
 ```
 
 In the table above, each unique ID corresponds to one respondent, and `order` represents the order in which they named the respective place (between 1 and 10). It was not explicitly stated that they order their places from most to least meaningful/nostalgic.
@@ -211,11 +213,11 @@ The initial data cleaning has run its course; we have now done all that we can d
 We save the above datasets to separate files:
 
 ```{r eval=F}
-#t <- format(Sys.time(), "%Y%m%d_%H%M%S")
-t <- "20201216_104624"
+# t <- format(Sys.time(), "%Y%m%d_%H%M%S")
+t <- "20201227_235052"
 write.csv(data.students, paste("data/students_", t, ".csv", sep=""), row.names=F)
 write.csv(data.places, paste("data/places_", t, ".csv", sep=""), row.names=F)
-write.csv(data.housing_long, "data/housing_S20_F2020_long.csv", row.names=F)
+write.csv(data.housing_long, "data/housing_S20_F20_long.csv", row.names=F)
 ```
 
 Lastly, note that the full and original survey data is not made public in order to respect students' privacy. Email me at [cove.geary@yale.edu](mailto:cove.geary@yale.edu) if you have questions.

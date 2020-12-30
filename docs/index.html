@@ -2066,10 +2066,9 @@ code span.wa { color: #bf0303; } /* Warning */
   /*-- Additional custom styles --*/
   /* Add any additional CSS rules below                      */
   </style>
-  <style type="text/css">@import url('https://fonts.googleapis.com/css2?family=Alata');
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code');
-  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+Pro');
-  /*@import url("https://cdn.jsdelivr.net/gh/vsalvino/computer-modern@main/fonts/serif.css");*/ /* Thank you https://github.com/vsalvino/computer-modern */
+  <style type="text/css">@import url('https://fonts.googleapis.com/css2?family=Alata&family=Fira+Code&family=Source+Serif+Pro&display=swap');
+  /* First serif font was computer modern, thanks https://github.com/vsalvino/computer-modern */
+  /*@import url("https://cdn.jsdelivr.net/gh/vsalvino/computer-modern@main/fonts/serif.css");*/
 
   html {
     /*-- Main font sizes --*/
@@ -2091,7 +2090,7 @@ code span.wa { color: #bf0303; } /* Warning */
     --body-font:       "Source Serif Pro", serif;
     --navbar-font:     "Alata", sans-serif;
     /* Other vars */
-    --line-height:    1.3;
+    --line-height:    1.5;
   }
 
   /*-- ARTICLE METADATA --*/
@@ -2136,15 +2135,13 @@ code span.wa { color: #bf0303; } /* Warning */
 
   /*-- Additional custom styles --*/
 
-  /* Slimmer line height */
+  /* Trimming whitespace (line height, margins, padding) */
   d-article, d-article h2, d-article h3, d-title h1, d-title p {
       line-height: 1;
   }
   d-article pre, d-article p, d-article ul, d-article ol {
       line-height: var(--line-height);
   }
-
-  /* Reduce margins, padding */
   d-title {
       padding: 6rem 0 1.5rem 0;
   }
@@ -2164,20 +2161,43 @@ code span.wa { color: #bf0303; } /* Warning */
   div.sourceCode, div.figure {
       margin: 0 0 0 1em;
   }
-
-  d-article {
-      font-size: var(--body-size);
+  .layout-chunk {  /* Div creates a faux margin for the first heading when there is a TOC */
+      display: none;
   }
 
-  /* Relative header sizing (Distill doesn't theme h1) */
+  /* Fonts: header font in Table of Contents */
+  .d-contents ul {
+      font-family: var(--heading-font);
+  }
+  /* Fonts: relative header sizing (Distill doesn't theme h1) */
   d-article h2 {
       font-size: 2em;
   }
   d-article h3 {
       font-size: 1.3em;
   }
+  /* Fonts: apply cusom monotype font for <code> */
+  code {
+      font-family: var(--mono-font);
+  }
+  /* Fonts: make all standard article text the same size! (E.g. lists were larger than paragraphs) */
+  d-article {
+      font-size: var(--body-size);
+  }
 
-  /* Correctly color dropdowns in the nav bar */
+  /* Dataframes i.e. pagedtables */
+  .pagedtable {
+      font-family: var(--mono-font);
+  }
+  .pagedtable table th, .pagedtable table td, .pagedtable .pagedtable-footer {
+      font-size: var(--code-size);
+  }
+  .l-body { /* Don't let pagedtables overflow */
+      max-width: 100%;
+  }
+
+
+  /* Colors: correctly color dropdowns in the nav bar */
   .nav-dropdown .nav-dropbtn {
       color: var(--text-color);
   }
@@ -2193,13 +2213,9 @@ code span.wa { color: #bf0303; } /* Warning */
   .nav-dropdown-content a:hover {
       background-color: var(--bkgd-color);
   }
-
-  /* Monospace font for dataframes */
-  .pagedtable {
-      font-family: var(--mono-font);
-  }
-  .pagedtable table th, .pagedtable table td, .pagedtable .pagedtable-footer {
-      font-size: var(--code-size);
+  /* Colors: blue links for higher contrast */
+  d-article p a {
+      color: blue;
   }
 
   /* Increase width of page content */
@@ -2220,20 +2236,6 @@ code span.wa { color: #bf0303; } /* Warning */
           grid-template-columns: [screen-start] 1fr [page-start kicker-start] 65px [middle-start] 65px [text-start kicker-end] repeat(8, 92px) [text-end gutter-start] 65px [middle-end] 65px [page-end gutter-end] 1fr [screen-end];
           grid-column-gap: 16px;
       }
-  }
-
-  /* Header font in Table of Contents */
-  /*.d-contents ul {
-      font-family: var(--heading-font);
-  }*/
-
-  /* Color links blue for higher contrast */
-  d-article p a {
-      color: blue;
-  }
-  /* Remove div which creates a faux margin for the first heading when there is a table of contents */
-  .layout-chunk {
-      display: none;
   }</style>
   <style type="text/css">
   /* base style */
@@ -2449,14 +2451,14 @@ Code &amp; Data
 <p>The months that followed have brought hardship in myriad ways, and often in immense degree. Yet the Spring semester at Yale eventually concluded, ending for many not with a bang but a whimper, with some security proffered up by the College adopting a Universal Pass/Fail grading system.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> As Summer too came and passed, Yale tentatively reopened in the Fall, in spite of and in light of the COVID-19 pandemic, welcoming back some students to a modified campus environment.</p>
 <div class="layout-chunk" data-layout="l-body">
 <div class="figure"><span id="fig:unnamed-chunk-1"></span>
-<img src="site-data/courtyard_20200828.jpg" alt="At the beginning of the Fall semester, students sit in spray-painted social-distancing circles in the Stiles Courtyard. In the background, the Stiles Tower is entirely void of students this term. Captured 8/24/2020." width="1466" />
+<img src="site-data/courtyard_20200828.jpg" alt="At the beginning of the Fall semester, students sit in spray-painted social-distancing circles in the Stiles Courtyard. In the background, the Stiles Tower is entirely void of students for the term. Captured 8/24/2020." width="1466" />
 <p class="caption">
-Figure 1: At the beginning of the Fall semester, students sit in spray-painted social-distancing circles in the Stiles Courtyard. In the background, the Stiles Tower is entirely void of students this term. Captured 8/24/2020.
+Figure 1: At the beginning of the Fall semester, students sit in spray-painted social-distancing circles in the Stiles Courtyard. In the background, the Stiles Tower is entirely void of students for the term. Captured 8/24/2020.
 </p>
 </div>
 </div>
-<p>—Jarringly, life continues hand-in-hand with the augmented concerns of staying safe and attending to even our most basic needs. This project seeks to tap into this dissonance by visualizing certain aspects of Yale students’ experiences in 2020: their movements, their reflections on place, their connection to their Residential College.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> For indeed it has been a year of compromises: in the Fall semester, the dorms ran at approximately 40% capacity<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> while the Yale community saw 360 positive COVID-19 cases;<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a> a whole new class of first-years was welcomed onto campus while the sophomores were excluded; seniors and many juniors took to the surrounding off-campus New Haven area in droves; and many in all classes chose to take a Leave of Absence, putting their education on pause. The first-years will likely be welcomed back in the Fall of 2021, meaning a nine-month hiatus in their time physically at Yale, while the sophomore class may soon end their ten-month hiatus in the Spring of 2021.</p>
-<p>And yet there has been good in this time, and there has certainly been newness. The reality of the pandemic has forced us to reinspect what <em>friendship</em> and <em>community</em> means, and to experiment new ways of enacting it. The verb <em>zoom</em> quickly took on entirely new meaning, and the physical boundaries of our conception of <em>place</em> is at once disintegrating and coming into sharper, newly-appreciated focus. Many first-years have grown to call Yale their <em>home</em> for the very first time; we have all been finding meaning in places old and new, those physical and those virtual; and we have also been leaning on each other. Indeed we have been living. And in my residential college, the focus of this project, post-pandemic 2020 has seen a passing of the torch for both the Dean<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a> and Head of College<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a>.</p>
+<p>—Jarringly, life continues hand-in-hand with the augmented concerns of staying safe and attending to even our most basic needs. This project seeks to tap into this dissonance by visualizing certain aspects of Yale students’ experiences in 2020: their movements, their reflections on place, their connection to their Residential College.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> For indeed it has been a year of compromises: in the Fall semester, the dorms ran at approximately 40% capacity<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> while the Yale community saw 399 positive COVID-19 cases;<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a> a whole new class of first-years was welcomed onto campus while the sophomores were excluded; seniors and many juniors took to the surrounding off-campus New Haven area in droves; and many in all classes chose to take a Leave of Absence, putting their education on pause. The first-years will likely be welcomed back in the Fall of 2021, meaning a nine-month hiatus in their time physically at Yale, while the sophomore class may soon end their ten-month hiatus in the Spring of 2021.</p>
+<p>And yet there has been good in this time, and there has certainly been newness. The reality of the pandemic has forced us to reinspect what <em>friendship</em> and <em>community</em> means, and to experiment with new ways of enacting it. The verb <em>zoom</em> quickly took on entirely new meaning, and the physical boundaries of our conception of <em>place</em> is at once disintegrating and coming into sharper, newly-appreciated focus. Many first-years have grown to call Yale their <em>home</em> for the very first time; we have all been finding meaning in places old and new, those physical and those virtual; and we have also been leaning on each other. Indeed we have been living. And in my residential college, the focus of this project, post-pandemic-onset 2020 has seen a passing of the torch for both the Dean<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a> and the Head of College.<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a></p>
 <p>This project focuses on Ezra Stiles College, one of the fourteen colleges at Yale, and a community dear to the author’s own heart. Through a variety of mapping and other data visualizations, it probes the questions: How has community been realized in 2020? How has it been interrupted? Where even is “the herd?”<a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a></p>
 <h2 id="exploring-this-site">Exploring this Site</h2>
 <p>The top bar of this site can be used to navigate to each part of this project. The navigation bar lists all pages in a very lightly suggested order, but please explore at will: each page holds its own, offering a different data-driven perspective on the questions above.</p>
@@ -2468,7 +2470,9 @@ Note about my own perspective as an on-campus student.
 Also note about how this focuses on students, even though Stiles is so much more.
 
 Reflect on limitations of this exploration and its representativeness of Stiles, and Yale, write large.
-Lamentably, so much that this study can't get to. Food and housing security. Social network. Mentors. How have these pillars held up in 2020? —Yet, it still is couched in the oncoming wave of studies which investigate social/behavioral changes due to COVID-19, as well as the coerced movement or displacement of various demographics.-->
+Lamentably, so much that this study can't get to. Food and housing security. Social network. Mentors. How have these pillars held up in 2020? —Yet, it still is couched in the oncoming wave of studies which investigate social/behavioral changes due to COVID-19, as well as the coerced movement or displacement of various demographics.
+
+Note about when this was written-->
 <h2 class="appendix" id="about">About</h2>
 <p>This website is the result of a project done for <em>PLSC 349</em>, <em>Visualization of Political and Social Science Data</em>, with Professor Alex Coppock. The code and website are licensed under the MIT license.</p>
 <h2 class="appendix" id="acknowledgements">Acknowledgements</h2>
@@ -2480,7 +2484,7 @@ Lamentably, so much that this study can't get to. Food and housing security. Soc
 <li id="fn1" role="doc-endnote"><p><a href="https://yaledailynews.com/blog/2020/04/07/yale-college-adopts-pass-fail/" class="uri">https://yaledailynews.com/blog/2020/04/07/yale-college-adopts-pass-fail/</a><a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn2" role="doc-endnote"><p>To the uninitiated: it is often said that “the Residential College is a microcosm of the greater Yale community.” The colleges can be thought of as Yale’s “Hogwarts houses” or Oxford-esque housing parallel.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn3" role="doc-endnote"><p><a href="https://news.yale.edu/2020/08/19/yale-prepares-welcome-students-fall-semester-2020" class="uri">https://news.yale.edu/2020/08/19/yale-prepares-welcome-students-fall-semester-2020</a><a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn4" role="doc-endnote"><p><a href="https://covid19.yale.edu/yale-statistics" class="uri">https://covid19.yale.edu/yale-statistics</a>, retrieved 12 December 2020.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4" role="doc-endnote"><p><a href="https://covid19.yale.edu/yale-statistics" class="uri">https://covid19.yale.edu/yale-statistics</a>, retrieved 30 December 2020.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn5" role="doc-endnote"><p><a href="https://yaledailynews.com/blog/2020/04/03/stiles-dean-settles-into-a-student-less-college/" class="uri">https://yaledailynews.com/blog/2020/04/03/stiles-dean-settles-into-a-student-less-college/</a><a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn6" role="doc-endnote"><p><a href="https://yaledailynews.com/blog/2020/04/20/camacho-appointed-head-of-ezra-stiles-college/" class="uri">https://yaledailynews.com/blog/2020/04/20/camacho-appointed-head-of-ezra-stiles-college/</a><a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn7" role="doc-endnote"><p>As the Stiles mascot is a moose, we are the herd. (GFM.)<a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>

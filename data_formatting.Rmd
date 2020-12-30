@@ -10,28 +10,37 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r echo=F}
-library(tidyverse)
 library(ggmap)
 library(rmarkdown)
+library(sf)
+library(tidyverse)
+library(tools)
 ```
 
-<!--Some data is also a handmade set of geographic polygons corresponding to the different dorms that have housed Stiles students.-->
+## Overview
 
-## Prep for Mapping Moose
+It is almost time to really soup up the data: we will augment some of it (tie-in other useful datasets or descriptions) and continue to reformat much of it. However, as discussed in **Data Intro**, some of the the data must, lamentably, be cleaned up by-hand. The following steps were done following the previous page but before the code of the present page:
 
-Some of the specifying was done previously The rest had to be done by hand. Here's what I did. Student data:
+* Rewrite some entries in the `Location` and `Place` data to be specific enough for geocoding via Google's API or my own knowledge. For example, "Brick Oven Pizza" was updated to "Brick oven Pizza New Haven," "my dorm" was updated to "Stiles Dorm," and so on.
+* Fix wrong entries of "Off-campus" and "Not in New Haven" (`Dorm1`, `Dorm5`) if the response does not correctly correspond to the approximate location data (`Loc1`, `Loc5`). For example, if the listed dorm information is "Off-campus" but the corresponding location is outside of New Haven, it is updated to "Not in New Haven."
+* Fix some cells where students write-in their own version of "NA."
+* Delete a row which was obviously the same student who resubmitted in more detail some days later, after their initial survey draft had been finalized due to timeout.
 
-* Reformat location data (Loc1, Loc2, etc) to be specific enough for geocoding
-* Fix some spots where students write-in their own version of "NA"
-* Fix wrong entries of "Off-campus" and "Not in New Haven" and make sure that there aren't wrongful NAs.
+Ideally the cleanup could all be done programatically; however, the only address validation offered by Qualtrics is for U.S. zipcodes, which was not granular enough for `Place` data and too restrictive for student `Location` data (given international travel). In addition, some important Stiles and Yale locations are too specific for geocoding services such as Google's to know (e.g. "Stiles Library" or "Stiles Game Room"), hence the need for some manual intervention. The resultant dataframes, one for general survey responses (cleaned up `Location` data) and one for meaningful/nostalgic places (cleaned up `Place` data), were then saved as CSVs with the `_locclean` suffix to the filename.
 
-Did this stuff by hand bc Qualtrics doesn't have good address validation, sad, and some locations were specific (e.g. "Ezra Stiles Library").
+In the sections to follow, a nomenclature for talking about the different time periods of 2020 is developed, and then the data is finally prepped for **Connectedness (Feeling Connected)**, **Student Locations (Mapping Moose)**, and **Meaningful/Nostalgic (Key) Places**.
+
+<!-- TODO: also for Missing moose!!!
+
+Some data is also a handmade set of geographic polygons corresponding to the different dorms that have housed Stiles students.-->
 
 ```{r}
-t <- "20201216_104624"
+# Read location and place data into two separate dataframes
+t <- "20201227_235052"
 data.students.loc <- read.csv(paste("data/students_", t, "_locclean.csv", sep="")) %>%
-    select(-c(Email, starts_with("Place"), Duration)) %>%
-    mutate(Housing.F20=case_when(  # Couldn't do this on the previous page bc data wasn't clean
+    select(-c(Email, starts_with("Place"))) %>%
+    # New variable: we couldn't do this in the last page since the data wasn't fully cleaned.
+    mutate(Housing.F20=case_when(
             grepl("Stiles", Dorm5) ~ "On-campus Stiles",
             grepl("Vanderbilt|LW", Dorm5) ~ "On-campus OC",
             Dorm5 == "Off-campus" ~ "Off-campus",
@@ -39,32 +48,28 @@ data.students.loc <- read.csv(paste("data/students_", t, "_locclean.csv", sep=""
             T ~ Dorm5))
 ```
 
-### Epochs & Waypoints, Lengthening; Connectedness
+## Epochs & Waypoints
 
-First: for each time period ("epoch"), students could list an arbitrary number of locations in which they resided over that time. Let's expand those places into new columns ("waypoints"), each named $\text{Loc}_{e,w}$ where $e$ is the epoch (time period) and $w$ is the numbered waypoint. For the sake of these visualizations, I assume that the waypoints are equally spaced in time. This is interpolation is obviously not the case, but seems a reasonable compromise for not making respondents fill in every single precise date.
+For each time period ("epoch" as dicussed on the [previous page](data_intro.html#interpretation)), students could list an arbitrary number of locations in which they resided over that time. Let's expand those places into new columns ("waypoints"), each named Loc<sub>e,w</sub> where `e` is the epoch (time period) and `w` is the numbered waypoint. For the sake of these visualizations, we assume that the waypoints are equally spaced in time. This interpolation is obviously not the case, but seems a reasonable compromise for not making respondents fill in every single precise date.
 
 ```{r}
 # Given a vector of strings representing locations, returns the jth location if
 # available, else the last location in the vector. Used to "extract" locations
-# after the original data has been split with str_split.
+# after the original data has been split into a vector with str_split.
 extract_location <- function(vec, j) {
-    if (length(vec) >= j) {
-        return(trimws(vec[j]))
-    } else {
-        return(trimws(vec[length(vec)]))
-    }
+    if (length(vec) >= j)   return(trimws(vec[j]))
+    else                    return(trimws(vec[length(vec)]))
 }
 extract_location.V <- Vectorize(extract_location)
 
-# Expand waypoints into new columns for each epoch. For each epoch, the number of
-# waypoints is the maximum number of locations (separated by ";") that any
-# respondent lists. For responses which list fewer locations than the maximum at
-# that time period, duplicte those locations through the remaining waypoints as
-# necesary.
+# Expand waypoints into new columns. For each epoch, the number of waypoints is
+# the maximum number of locations (separated by ";") that any  respondent lists.
+# For responses which list fewer locations than the maximum at that time period,
+# duplicate those locations through the remaining waypoints as necessary.
 is <- c(1, 2, "2.5", 3, 4, 5, 6)
 for (i in is) {
-    # Split each epoch of locations into a vector by the ";" delimiter.
     loc <- paste("Loc", i, sep="")
+    # Split each epoch of locations into a vector by the ";" delimiter.
     data.students.loc <- data.students.loc %>%
         mutate(across(.data[[loc]], str_split, pattern=";"))
     # Extract those vectors into new waypoint columns, duplicating information
@@ -76,24 +81,23 @@ for (i in is) {
             mutate("{loc_j}" := extract_location.V(.data[[loc]], j))  # [2]
     }
 }
-data.students.loc <- data.students.loc %>% select(-c(Loc1, Loc2, Loc2.5, Loc3, Loc4, Loc5, Loc6))
 # [1] https://stackoverflow.com/questions/11498155/by-commandto-find-out-the-maximum-number-from-a-list
 # [2] https://dplyr.tidyverse.org/reference/dplyr_data_masking.html#dot-dot-dot-
 
-# Colnames for each precise time should be "LocE_W"
+# This shows the number of waypoints for each epoch. Column names for each
+# waypoint W in each epoch E should be "LocE_W."
+data.students.loc <- data.students.loc %>%
+    select(-c(Loc1, Loc2, Loc2.5, Loc3, Loc4, Loc5, Loc6))
 colnames(data.students.loc)
 ```
 
-Next: we LENGTHEN that stuff :-). Do it for connectedness, also, so we can merge data.
+It is time for a whole lot of `LENGTHENING` :-).
+
+## Prep for Connectedness, Part 1
+
+### Lengthen
 
 ```{r}
-# Lengthen locations through Epoch and Waypoint
-data.locations <- data.students.loc %>%
-    select(-c(Conn1:Conn6)) %>%
-    pivot_longer(Loc1_1:Loc6_5,
-                 names_to=c("Epoch", "Waypoint"),
-                 names_pattern="Loc(.*)_(.)",
-                 values_to="Address")
 # Lengthen connectedness through Epoch (waypoint data not collected)
 data.connectedness <- data.students.loc %>%
     select(-c(Loc1_1:Loc6_5)) %>%
@@ -101,9 +105,27 @@ data.connectedness <- data.students.loc %>%
                  names_to="Epoch",
                  names_pattern="Conn(.*)",
                  values_to="Connectedness")
+```
 
-# Merge them together, duplicating "connectedness" across waypoints and both
-# weeks of Spring break (epochs 2, 2.5).
+We do this first so we can merge it back to location data.
+
+## Prep for Mapping Moose
+
+### Lengthen
+
+```{r}
+# Lengthen locations through Epoch and Waypoint
+data.locations <- data.students.loc %>%
+    select(-c(Conn1:Conn6)) %>%
+    pivot_longer(Loc1_1:Loc6_5,
+                names_to=c("Epoch", "Waypoint"),
+                 names_pattern="Loc(.*)_(.)",
+                 values_to="Address")
+```
+
+### Augment: Connectedness, Labels
+
+```{r}
 get_connectedness <- function(epoch, id) {
     return(as.numeric(data.connectedness %>%
                 filter(Epoch==ifelse(epoch=="2.5", "2", epoch) & ID==id) %>%
@@ -116,17 +138,13 @@ data.locations.conn <- data.locations %>%
     mutate(Connectedness=get_connectedness.V(Epoch, ID))
 ```
 
-```{r}
-write.csv(data.connectedness, paste("data/connectedness_", t, ".csv", sep=""))
-```
-
 Finally we'll add in a couple of ways to help the visualizations make a bit more sense out of the Epoch/Waypoint nomenclature. In one we'll convert Epoch/Waypoint to days of the year (from 1 to 365), and in another just a string combination of the Epoch/Waypoint labels.
 
 ```{r}
 # Thanks to http://mistupid.com/calendar/dayofyear.htm for converting dates to
 # days of the year.
 epoch_days <- c("1"=13, "2"=67, "2.5"=76, "3"=83, "4"=128, "5"=244, "6"=327, "7"=365)
-n_waypoints <- c("1"=1, "2"=4, "2.5"=2, "3"=1, "4"=4, "5"=3, "6"=5)  # hardcoded
+n_waypoints <- c("1"=1, "2"=4, "2.5"=3, "3"=1, "4"=4, "5"=3, "6"=5)  # hardcoded
 epoch_lengths <- epoch_days[2:8] - epoch_days[1:7]
 names(epoch_lengths) <- names(n_waypoints)
 
@@ -157,9 +175,9 @@ data.locations_long <- data.locations_long %>%
     mutate(TimeExact=paste(TimePrd, ".", Waypoint, sep=""))
 ```
 
-### Geocoding
+### Geocoding with Google
 
-All that work for just a few lines of code. (Note: we don't actually geocode in production, else website generation would take a long time.)
+Final and most important augmentation here. (Note: we don't actually geocode in production, else website generation would take a long time.)
 
 ```{r eval=F}
 data.locations.conn <- data.locations.conn %>%
@@ -172,12 +190,35 @@ saveRDS(data.locations.conn, file=paste("data/locations.conn_", t, ".rds", sep="
 
 Converts to Simple Features, which we love <3. Final product in the table below.
 
-### Data Table
+### Data Table (Mapping Moose)
 
 ```{r}
 data.locations.conn <- readRDS(paste("data/locations.conn_", t, ".rds", sep=""))
-paged_table(data.locations.conn)
+paged_table(sample_n(data.locations.conn, n()))
 ```
+
+## Prep for Connectedness, Part 2
+
+```{r}
+data.connectedness <- data.locations.conn %>%
+    filter(Waypoint == 1) %>%  # Remove duplicated data in waypoints and epoch2.5
+    filter(Epoch != 2.5) %>%
+    st_set_geometry(NULL)  # Removes bugginess in saving to and loading from file
+# Augment an extra column to extend data through 2020 (365th day)
+data.connectedness <- data.connectedness %>%
+    rbind(data.connectedness %>%
+              filter(Epoch==6) %>%
+              mutate(Epoch=7, Day=365, TimeEW="t7-1"))
+```
+
+### Data Table (Connectedness)
+
+```{r}
+paged_table(sample_n(data.connectedness, n()))
+write.csv(data.connectedness, paste("data/connectedness_", t, ".csv", sep=""), row.names=F)
+```
+
+Note similarities to prev data table.
 
 ## Prep for Nostalgia/Meaning
 
@@ -200,12 +241,9 @@ Note, however, that there are some special places which aren't lookup-able by Go
 These occurrences are separated from the table and mapped to coordinates by manual lookup data. The remaining physical locations are geocoded as above.
 
 ```{r}
-data.places <- read.csv(paste("data/places_", t, "_locclean.csv", sep=""))  # Note new cleaned file
-```
+data.places <- read.csv(paste("data/places_", t, "_locclean.csv", sep=""))  %>%
+    mutate(Name=trimws(toTitleCase(Name)))
 
-### Geocoding
-
-```{r}
 data.places.stiles <- data.places %>%
     filter(Type=="Physical" & str_detect(Name, "(?i)stiles"))  # ?i is case-insensitive regex
 data.places.yale <- data.places %>%
@@ -214,9 +252,11 @@ data.places.virt <- data.places %>%
     filter(Type=="Virtual")
 ```
 
+### Geocoding: Google, by Hand
+
 ```{r}
 # Map stiles spots to GPS
-places.yale <- read.csv("data/yale.locations.csv")
+places.yale <- read.csv("data/yale_locations.csv")
 # Although this could be done with tidy functions (leaning heavily on case_when),
 # I think this approach is more readable and is much less repetitive. With small
 # data, the performance is no problem.
@@ -250,9 +290,10 @@ data.places.stiles <- data.places.stiles %>%
 # Automocatically geocode (google) all other spots to GPS
 data.places.yale <- data.places.yale %>%
     mutate_geocode(Name)
+
 # Sanity check
-range(data.places.yale$lon[is.finite(data.places.yale$lon)])
-range(data.places.yale$lat[is.finite(data.places.yale$lat)])
+range(data.places.yale$lon[is.finite(data.places.yale$lon)])  # [1] -73.32775 -72.89932
+range(data.places.yale$lat[is.finite(data.places.yale$lat)])  # [1] 41.11225 41.34746
 ```
 
 ```{r eval=F}
@@ -261,9 +302,10 @@ data.places.physical <- data.places.yale %>%
     rbind(data.places.stiles) %>%
     st_as_sf(coords=c("lon", "lat"), crs=4326)
 saveRDS(data.places.physical, paste("data/places.physical_" , t, ".rds"))
-write.csv(data.places.virt, paste("data/places.virt_" , t, ".csv"), row.names=F)
 ```
 
-(Virtual locations are a fun anomoly left for some other time :D)
+Virtual places must remain as-is, as Science has not yet determined how to map the virtual realm onto the real world of latitude, longitude coordinates. Instead we will make a WORD CLOUD :D.
 
-## Conclude
+```{r}
+write.csv(data.places.virt, paste("data/places.virt_" , t, ".csv", sep=""), row.names=F)
+```

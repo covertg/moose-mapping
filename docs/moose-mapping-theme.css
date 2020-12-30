@@ -1,7 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Alata');
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code');
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+Pro');
-/*@import url("https://cdn.jsdelivr.net/gh/vsalvino/computer-modern@main/fonts/serif.css");*/ /* Thank you https://github.com/vsalvino/computer-modern */
+@import url('https://fonts.googleapis.com/css2?family=Alata&family=Fira+Code&family=Source+Serif+Pro&display=swap');
+/* First serif font was computer modern, thanks https://github.com/vsalvino/computer-modern */
+/*@import url("https://cdn.jsdelivr.net/gh/vsalvino/computer-modern@main/fonts/serif.css");*/
 
 html {
   /*-- Main font sizes --*/
@@ -23,7 +22,7 @@ html {
   --body-font:       "Source Serif Pro", serif;
   --navbar-font:     "Alata", sans-serif;
   /* Other vars */
-  --line-height:    1.3;
+  --line-height:    1.5;
 }
 
 /*-- ARTICLE METADATA --*/
@@ -68,15 +67,13 @@ d-appendix {
 
 /*-- Additional custom styles --*/
 
-/* Slimmer line height */
+/* Trimming whitespace (line height, margins, padding) */
 d-article, d-article h2, d-article h3, d-title h1, d-title p {
     line-height: 1;
 }
 d-article pre, d-article p, d-article ul, d-article ol {
     line-height: var(--line-height);
 }
-
-/* Reduce margins, padding */
 d-title {
     padding: 6rem 0 1.5rem 0;
 }
@@ -96,20 +93,43 @@ d-article h2, d-article h3 {
 div.sourceCode, div.figure {
     margin: 0 0 0 1em;
 }
-
-d-article {
-    font-size: var(--body-size);
+.layout-chunk {  /* Div creates a faux margin for the first heading when there is a TOC */
+    display: none;
 }
 
-/* Relative header sizing (Distill doesn't theme h1) */
+/* Fonts: header font in Table of Contents */
+.d-contents ul {
+    font-family: var(--heading-font);
+}
+/* Fonts: relative header sizing (Distill doesn't theme h1) */
 d-article h2 {
     font-size: 2em;
 }
 d-article h3 {
     font-size: 1.3em;
 }
+/* Fonts: apply cusom monotype font for <code> */
+code {
+    font-family: var(--mono-font);
+}
+/* Fonts: make all standard article text the same size! (E.g. lists were larger than paragraphs) */
+d-article {
+    font-size: var(--body-size);
+}
 
-/* Correctly color dropdowns in the nav bar */
+/* Dataframes i.e. pagedtables */
+.pagedtable {
+    font-family: var(--mono-font);
+}
+.pagedtable table th, .pagedtable table td, .pagedtable .pagedtable-footer {
+    font-size: var(--code-size);
+}
+.l-body { /* Don't let pagedtables overflow */
+    max-width: 100%;
+}
+
+
+/* Colors: correctly color dropdowns in the nav bar */
 .nav-dropdown .nav-dropbtn {
     color: var(--text-color);
 }
@@ -125,13 +145,9 @@ d-article h3 {
 .nav-dropdown-content a:hover {
     background-color: var(--bkgd-color);
 }
-
-/* Monospace font for dataframes */
-.pagedtable {
-    font-family: var(--mono-font);
-}
-.pagedtable table th, .pagedtable table td, .pagedtable .pagedtable-footer {
-    font-size: var(--code-size);
+/* Colors: blue links for higher contrast */
+d-article p a {
+    color: blue;
 }
 
 /* Increase width of page content */
@@ -152,18 +168,4 @@ d-article h3 {
         grid-template-columns: [screen-start] 1fr [page-start kicker-start] 65px [middle-start] 65px [text-start kicker-end] repeat(8, 92px) [text-end gutter-start] 65px [middle-end] 65px [page-end gutter-end] 1fr [screen-end];
         grid-column-gap: 16px;
     }
-}
-
-/* Header font in Table of Contents */
-/*.d-contents ul {
-    font-family: var(--heading-font);
-}*/
-
-/* Color links blue for higher contrast */
-d-article p a {
-    color: blue;
-}
-/* Remove div which creates a faux margin for the first heading when there is a table of contents */
-.layout-chunk {
-    display: none;
 }
