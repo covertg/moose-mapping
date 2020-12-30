@@ -41,9 +41,9 @@ data.students.loc <- read.csv(paste("data/students_", t, "_locclean.csv", sep=""
     select(-c(Email, starts_with("Place"))) %>%
     # New variable: we couldn't do this in the last page since the data wasn't fully cleaned.
     mutate(Housing.F20=case_when(
-            grepl("Stiles", Dorm5) ~ "On-campus Stiles",
-            grepl("Vanderbilt|LW", Dorm5) ~ "On-campus OC",
-            Dorm5 == "Off-campus" ~ "Off-campus",
+            grepl("Stiles", Dorm5) ~ "Stiles",
+            grepl("Vanderbilt|LW", Dorm5) ~ "Old Campus",
+            Dorm5 == "Off-campus" ~ "Off-Campus",
             Dorm5 == "Not in New Haven" ~ "Remote",
             T ~ Dorm5))
 ```

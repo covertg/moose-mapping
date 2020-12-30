@@ -76,7 +76,7 @@ data.places.virt <- read.csv(paste("data/places.virt_" , t, ".csv", sep=""))
 
 The venerable word cloud lives to see another day:
 
-```{r layout="l-screen"}
+```{r layout="l-screen shaded"}
 set.seed(2021)
 places <- data.places.virt %>%
     mutate(angle = 90 * sample(c(0, 1), n(), replace=T, prob=c(60, 40))) %>%

@@ -1,6 +1,8 @@
 ---
 title: "Feeling Connected"
-output: distill::distill_article
+output:
+  distill::distill_article:
+    toc: true
 ---
 
 ```{r setup, include=FALSE}
@@ -10,91 +12,188 @@ knitr::opts_chunk$set(echo = T)
 ```{r echo=F}
 library(tidyverse)
 library(ggthemes)
-library(sf)  # need to import sf in order for readRDS to work correctly
 library(plotly)
 ```
 
-```{r}
-# Load data
-t <- "20201227_235052"
-data.connectedness <- read.csv(paste("data/connectedness_", t, ".csv", sep=""))
-# "Jitter" values just a little bit, so it's easier to see overlapping points
-c_jitter <- data.connectedness %>%
-    mutate(Day=jitter(Day, factor=1)) %>%  # x
-    mutate(Connectedness=jitter(Connectedness, factor=.5)) %>%  # y
-    mutate(Housing.F20=factor(Housing.F20, levels=c("On-campus Stiles", "On-campus OC", "Off-campus", "Remote")))
-```
+## Overview
 
-## Connectedness by graduation year
+Stilesians were asked: 
+> _On a scale of 1-10: On average, how connected have you felt to other people in the Stiles community during each time period? (1 = very disconnected, 10 = very connected.) Just answer to your best estimation/memory. First-years, it's ok if your answers are very low for the periods before Fall semester :)._
 
-```{r}
-g <- ggplot(c_jitter, aes(x=Day, y=Connectedness, color=factor(Year), group=ID)) +
-    geom_line(alpha=0.15) +
-    geom_point(alpha=0.35) +
-    scale_y_continuous(breaks=1:10) +
-    scale_x_continuous(breaks=unique(data.connectedness$Day)) +
-    scale_color_brewer(palette="Spectral") +
-    theme_tufte()
-ggplotly(g)
-
-# https://stackoverflow.com/questions/36227482/r-ggplot-dodging-geom-lines
-# https://ggplot2.tidyverse.org/reference/scale_brewer.html
-```
-
-Note that you can selectively view graduation years, or groups of graduation years, by clicking on the legend above.
-
-Guiding question: what is the trend in connectedness over time?
-
-## Connectedness by proximity to campus in Fall 2020
-
-```{r}
-g <- ggplot(c_jitter %>% filter(!is.na(Housing.F20)),
-            aes(x=Day, y=Connectedness, color=Housing.F20, group=ID)) +
-    geom_line(alpha=0.15) +
-    geom_point(alpha=0.35) +
-    scale_y_continuous(breaks=1:10) +
-    scale_x_continuous(breaks=unique(data.connectedness$Day)) +
-    scale_color_brewer(palette="Spectral") +
-    theme_tufte()
-ggplotly(g)
-```
-
-Focus on the Fall semester: what's going on in Day 327?
-
-## Connectedness by enrollment status in Fall 2020
-```{r}
-g <- ggplot(c_jitter, aes(x=Day, y=Connectedness, color=Enrolled.F20, shape=Enrolled.F20, group=ID)) +
-    geom_line(alpha=0.25) +
-    geom_point(alpha=0.45) +
-    scale_y_continuous(breaks=1:10) +
-    scale_x_continuous(breaks=unique(data.connectedness$Day)) +
-    scale_color_brewer(palette="Pastel1") +
-    theme_tufte()
-ggplotly(g)
-```
-
-Once again: helpful to look specifically at Fall 2020.
-
-## Small multiples
-
-```{r}
-g <- ggplot(c_jitter %>% filter(!is.na(Housing.F20)),
-            aes(x=Day, y=Connectedness, color=as.factor(Year), group=ID)) +
-    geom_line(alpha=0.5) +
-    geom_point(alpha=0.6) +
-    scale_y_continuous(breaks=1:10) +
-    scale_x_continuous(breaks=unique(data.connectedness$Day)) +
-    scale_color_colorblind() +
-    facet_grid(Housing.F20 ~ Enrolled.F20) +
-    theme_tufte()
-ggplotly(g)
-```
-
-
-## Guiding Questions
+### Guiding Questions:
 
 * For each year/grade: which time represents the highest connectedness?
 * How does connectedness vary between location and enrollment in F20?
 * What happens to connectedness over Spring break and Summer?
 
 Also note that the remainder of the year, from November 21 through December, is just assumed to be constant.
+
+### Read Data
+
+```{r}
+# Load data
+t <- "20201227_235052"
+data.connectedness <- read.csv(paste("data/connectedness_", t, ".csv", sep="")) %>%
+    mutate(Housing.F20=factor(
+        Housing.F20,
+        levels=c("On-campus Stiles", "On-campus OC", "Off-campus", "Remote"))) %>%
+        #levels=c("Stiles", "Old Campus", "Off-Campus", "Remote"))) %>%
+    mutate(Enrolled.F20=ifelse(is.na(Enrolled.F20), NA, ifelse(
+        Enrolled.F20==T, "Enrolled", "Not Enrolled"))) %>%
+    mutate(Enrolled.F20=factor(
+        Enrolled.F20, levels=c("Not Enrolled", "Enrolled")
+    )) %>%
+    mutate(Year=as.factor(Year))
+# "Jitter" values just a little bit, so it's easier to see overlapping points
+c_jitter <- data.connectedness %>%
+    mutate(Day=jitter(Day, factor=1)) %>%  # x
+    mutate(Connectedness=jitter(Connectedness, factor=.5))  # y
+```
+
+## First Look: Small Multiples
+
+```{r layout="l-page", fig.cap="Vertical columns represent enrollment status in Fall 2020, horizontal rows represent proximity to campus in Fall 2020."}
+g_all <- (
+    ggplot(c_jitter %>% filter(!is.na(Housing.F20) & !is.na(Enrolled.F20) & !is.na(Year)),
+           aes(x=Day, y=Connectedness, color=Year, group=ID)) +
+    geom_line(alpha=0.5) +
+    geom_point(alpha=0.6) +
+    scale_y_continuous(breaks=1:10) +
+    scale_x_continuous(breaks=unique(data.connectedness$Day)) +
+    scale_color_colorblind() +
+    facet_grid(Housing.F20 ~ Enrolled.F20) +
+    theme_minimal()
+) %>% ggplotly()
+g_all
+```
+
+Note that you can selectively view graduation years, or groups of graduation years, by clicking on the legend above.
+
+Focus on the Fall semester of 2020: what's going on in Day 327?
+
+Timeline review:
+
+| Epoch (`t=`value) | Time frame | Date range (2020) | Day of Year (Starting) |
+|-------------------|------------|-------------------|------------|
+| `t1` | Before Spring Break | < 3/7 | 13 |
+| `t2` | Spring Break | 3/7 - 3/22 | 67 |
+| `t3` | Remainder of the Spring semester| 3/23 - 5/6 | 83 |
+| `t4` | Summer | 5/7 - Late August | 128 |
+| `t5` | Fall semester, before Break | 8/31 - 11/21 | 244 |
+| `t6` | Remainder of the Fall semester | 11/22 - 2020 | 327 |
+
+## Deep Dives
+
+On summary statistics (means and standard errors).
+
+### Graduation Year
+
+```{r}
+data.summ.yr <- data.connectedness %>%
+    filter(!is.na(Housing.F20) & !is.na(Enrolled.F20) & !is.na(Year)) %>%
+    group_by(Year, Day) %>%
+    summarize(mean_se(Connectedness), N..Responses=n()) %>%
+    mutate(Connectedness=y)
+
+dodge <- position_dodge(12)
+g <- ggplot(data.summ.yr, aes(x=Day, y=Connectedness, color=Year, text=N..Responses)) +
+    geom_line(position=dodge) +
+    geom_errorbar(aes(ymin=ymin, ymax=ymax), position=dodge, width=10) +
+    scale_y_continuous(breaks=1:10) +
+    scale_x_continuous(breaks=unique(data.connectedness$Day)) +
+    scale_color_colorblind() +
+    theme_minimal()
+ggplotly(g)
+```
+
+Note that setting tooltips with geom_line is funky.^[https://github.com/ropensci/plotly/issues/1153]
+
+### Proximity to Campus
+
+```{r}
+data.summ.yr <- data.connectedness %>%
+    filter(!is.na(Housing.F20) & !is.na(Enrolled.F20) & !is.na(Year)) %>%
+    group_by(Housing.F20, Day) %>%
+    summarize(mean_se(Connectedness), N..Responses=n()) %>%
+    mutate(Connectedness=y)
+
+dodge <- position_dodge(12)
+g <- ggplot(data.summ.yr, aes(x=Day, y=Connectedness, color=Housing.F20, text=N..Responses)) +
+    geom_line(position=dodge) +
+    geom_errorbar(aes(ymin=ymin, ymax=ymax), position=dodge, width=10) +
+    scale_y_continuous(breaks=1:10) +
+    scale_x_continuous(breaks=unique(data.connectedness$Day)) +
+    scale_color_colorblind() +
+    theme_minimal()
+ggplotly(g)
+```
+
+### Enrollment Status
+
+```{r}
+data.summ.yr <- data.connectedness %>%
+    filter(!is.na(Housing.F20) & !is.na(Enrolled.F20) & !is.na(Year)) %>%
+    group_by(Enrolled.F20, Day) %>%
+    summarize(mean_se(Connectedness), N..Responses=n()) %>%
+    mutate(Connectedness=y)
+
+dodge <- position_dodge(12)
+g <- ggplot(data.summ.yr, aes(x=Day, y=Connectedness, color=Enrolled.F20, text=N..Responses)) +
+    geom_line(position=dodge) +
+    geom_errorbar(aes(ymin=ymin, ymax=ymax), position=dodge, width=10) +
+    scale_y_continuous(breaks=1:10) +
+    scale_x_continuous(breaks=unique(data.connectedness$Day)) +
+    scale_color_colorblind() +
+    theme_minimal()
+ggplotly(g)
+```
+
+
+## Granular Views
+
+The following plots offer a more granular look at Stiles-connectivity through time from the perspective of each of the following factors: graduation year, proximity to campus in the Fall, and enrollment status in the Fall.
+
+```{r}
+g_year <- (
+    ggplot(c_jitter %>% filter(!is.na(Year)),
+           aes(x=Day, y=Connectedness, color=Year, group=ID)) +
+    geom_line(alpha=0.25) +
+    geom_point(alpha=0.35) +
+    scale_y_continuous(breaks=1:10) +
+    scale_x_continuous(breaks=unique(data.connectedness$Day)) +
+    scale_color_colorblind() +
+    theme_minimal()
+) %>% ggplotly()
+
+g_proximity <- (
+    ggplot(c_jitter %>% filter(!is.na(Housing.F20)),
+            aes(x=Day, y=Connectedness, color=Housing.F20, group=ID)) +
+    geom_line(alpha=0.15) +
+    geom_point(alpha=0.35) +
+    scale_y_continuous(breaks=1:10) +
+    scale_x_continuous(breaks=unique(data.connectedness$Day)) +
+    scale_color_brewer(palette="Spectral") +
+    theme_minimal()
+) %>% ggplotly()
+
+g_enrollment <- (
+    ggplot(c_jitter %>% filter(!is.na(Enrolled.F20)),
+           aes(x=Day, y=Connectedness, color=Enrolled.F20, shape=Enrolled.F20, group=ID)) +
+    geom_line(alpha=0.25) +
+    geom_point(alpha=0.35) +
+    scale_y_continuous(breaks=1:10) +
+    scale_x_continuous(breaks=unique(data.connectedness$Day)) +
+    scale_color_colorblind() +
+    theme_minimal()
+) %>% ggplotly()
+
+# https://stackoverflow.com/questions/36227482/r-ggplot-dodging-geom-lines
+# https://ggplot2.tidyverse.org/reference/scale_brewer.html
+```
+
+```{r}
+# subplot(g_year, g_proximity, g_enrollment, shareX=T, nrows=3)
+g_year
+g_proximity
+g_enrollment
+```
