@@ -297,11 +297,11 @@ range(data.places.yale$lat[is.finite(data.places.yale$lat)])  # [1] 41.11225 41.
 ```
 
 ```{r eval=F}
-# Merge & convert to simplefeatures
+# Merge & save
 data.places.physical <- data.places.yale %>%
     rbind(data.places.stiles) %>%
-    st_as_sf(coords=c("lon", "lat"), crs=4326)
-saveRDS(data.places.physical, paste("data/places.physical_" , t, ".rds"))
+    mutate(lon=unlist(lon), lat=unlist(lat))
+write.csv(data.places.physical, paste("data/places.physical_" , t, ".csv"), row.names=F)
 ```
 
 Virtual places must remain as-is, as Science has not yet determined how to map the virtual realm onto the real world of latitude, longitude coordinates. Instead we will make a WORD CLOUD :D.

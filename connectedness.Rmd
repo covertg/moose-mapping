@@ -18,6 +18,7 @@ library(plotly)
 ## Overview
 
 Stilesians were asked: 
+
 > _On a scale of 1-10: On average, how connected have you felt to other people in the Stiles community during each time period? (1 = very disconnected, 10 = very connected.) Just answer to your best estimation/memory. First-years, it's ok if your answers are very low for the periods before Fall semester :)._
 
 ### Guiding Questions:

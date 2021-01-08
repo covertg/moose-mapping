@@ -88,6 +88,6 @@ animate(g2, fps=10, nframes=260, end_pause=10)  # Requests an fps which divides 
 # ? https://stackoverflow.com/a/61763614/14841573
 ```
 
-```{r fig.cap='"Home is where the herd is", reads a poster outside the Stiles dining hall.', echo=F}
+```{r fig.cap='A poster outside the Stiles dining hall reads, "home is where the herd is." ', echo=F}
 knitr::include_graphics("site-data/home_herd.jpg")
 ```

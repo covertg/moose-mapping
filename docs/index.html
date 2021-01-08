@@ -2159,10 +2159,26 @@ code span.wa { color: #bf0303; } /* Warning */
       padding-bottom: 4px;
   }
   div.sourceCode, div.figure {
-      margin: 0 0 0 1em;
+      margin: 0 0 1em 0;
   }
   .layout-chunk {  /* Div creates a faux margin for the first heading when there is a TOC */
       display: none;
+  }
+
+  /* Increase height of Leaflet maps */
+  .leaflet {
+      height: 80vh !important;  /* https://developer.mozilla.org/en-US/docs/Web/CSS/length#Viewport-percentage_lengths */
+  }
+
+  /* Pad all sides of shaded figures */
+  .shaded {
+      /*margin-bottom: 1em;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      padding: 20px;*/
+  }
+  /* Set correct background for shaded figures' color (e.g. for captions in a shaded figure) */
+  .shaded .shaded-content {
+      background-color: rgb(247, 247, 247);
   }
 
   /* Fonts: header font in Table of Contents */
@@ -2198,7 +2214,7 @@ code span.wa { color: #bf0303; } /* Warning */
 
 
   /* Colors: correctly color dropdowns in the nav bar */
-  .nav-dropdown .nav-dropbtn {
+  .nav-dropdown .nav-dropbtn, .nav-dropdown-content a {
       color: var(--text-color);
   }
   .nav-dropdown .nav-dropbtn:hover {
@@ -2206,9 +2222,6 @@ code span.wa { color: #bf0303; } /* Warning */
   }
   .nav-dropdown-content {
       background-color: var(--bkgd-color);
-  }
-  .nav-dropdown-content a {
-      color: var(--text-color);
   }
   .nav-dropdown-content a:hover {
       background-color: var(--bkgd-color);

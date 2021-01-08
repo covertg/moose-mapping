@@ -12,61 +12,103 @@ knitr::opts_chunk$set(echo=T)
 
 ```{r echo=F}
 library(tidyverse)
-library(sf)
-library(ggmap)
 library(ggthemes)
-library(plotly)
 library(ggwordcloud)
+library(KernSmooth)
+library(leaflet)
+library(RColorBrewer)
+library(sp)
+library(sf)
 ```
 
-```{r results="hide"}
+## Overview
+
+Stilesians were asked:
+
+> **If you lived in the New Haven this Fall**: looking back on life in New Haven this Fall (perhaps for the first time!), in which places on and around campus did you end up having meaningful experiences? \
+**If you have been remote in the Fall**: Know that you have been missed. Although you have been remote, perhaps some Yale places have been on your mind. Which places on and around campus do you feel most nostalgic for? Have any virtual Yale spaces been meaningful for you?
+
+Some of the places that respondents submitted ended up being virtual; many more ended up being physical.
+
+## New Haven Area
+
+```{r}
 # Get Places data
 t <- "20201227_235052"
-data.places.physical <- readRDS(paste("data/places.physical_" , t, ".rds"))
-# Define bounding box for our region of New Haven (will be the default zoom
-# level of our visualization), but also define a slightly larger bounding box
-# to give some more border in case viewers want to zoom out.
-x.lim0 <- c(-72.939, -72.903)
-y.lim0 <- c(41.302, 41.332)
-x.lim <- x.lim0 + 0.04 * c(-1, 1)
-y.lim <- y.lim0 + 0.02 * c(-1, 1)
-p_jitter <- data.places.physical %>%
-    st_crop(xmin=x.lim[1], xmax=x.lim[2], ymin=y.lim[1], ymax=y.lim[2]) %>%
-    st_jitter(factor=0.001)
-p_jitter['lon'] <- map_dbl(p_jitter$geometry, ~.[1])
-p_jitter['lat'] <- map_dbl(p_jitter$geometry, ~.[2])
-# Get map data
-# newhaven_lowres <- get_stamenmap(bbox=c(left=x.lim[1], right=x.lim[2], bottom=y.lim[1], top=y.lim[2]), zoom=15)
-# newhaven_medres <- get_stamenmap(bbox=c(left=x.lim[1], right=x.lim[2], bottom=y.lim[1], top=y.lim[2]), zoom=16)
-# newhaven <- get_stamenmap(bbox=c(left=x.lim[1], right=x.lim[2], bottom=y.lim[1], top=y.lim[2]), zoom=17)
-# saveRDS(newhaven_lowres, "data/newhaven_lowres.rds", compress=F)
-# saveRDS(newhaven_medres, "data/newhaven_medres.rds", compress=F)
-# saveRDS(newhaven, "data/newhaven.rds", compress=F)
-newhaven_lowres <- readRDS("data/newhaven_lowres.rds")
-newhaven_medres <- readRDS("data/newhaven_medres.rds")
-newhaven <- readRDS("data/newhaven.rds")
+data.places.physical <- read.csv(paste("data/places.physical_" , t, ".csv"))
+# Define bounding box for our region of New Haven, with help form bboxfinder.com
+x.lim <- c(-72.99461, -72.88622)
+y.lim <- c(41.294898, 41.344599)
+# Jitter the lat, lon coordinates for better visibility in plotting points
+places <- data.places.physical %>%
+    mutate(lon.jitter=jitter(lon, factor=2.2)) %>%
+    mutate(lat.jitter=jitter(lat, factor=2.2))
 ```
 
-Simplefeatures are great, but we actually end up using rasters. This allows the viewer to see precise building outlines on the map (while remaining feasible to render and interact with on a normal computer/browser). In addition, geom_density_2d() needs x,y data rather than simplefeatures.^[https://stackoverflow.com/questions/51566685/plotting-a-kernel-map-based-on-points-with-geom-sf]
+```{r echo=F, eval=F}
+# Defunct stuff
 
-```{r layout="l-page"}
-g <- ggmap(newhaven_lowres) +
-    inset_ggmap(newhaven_medres) +
-    inset_ggmap(newhaven) +
-    # Sadly, plotly isn't ready for density_2d_filled
-    geom_density_2d(data=p_jitter, aes(x=lon, y=lat), size=0.4, alpha=0.8, bins=15) +
-    geom_point(data=p_jitter, aes(x=lon, y=lat, text=Name),
-               shape=21, fill="yellow", color="black", size=0.8, stroke=0.1, alpha=0.8) +
-    lims(x=x.lim0, y=y.lim0) +
-    theme_tufte() +
-    theme(axis.text=element_blank(), axis.ticks=element_blank(), axis.title=element_blank())
+# x.lim <- c(-72.979, -72.863)
+# y.lim <- c(41.282, 41.352)
 
-# https://stackoverflow.com/questions/34605919/formatting-mouse-over-labels-in-plotly-when-using-ggplotly
-# ggplotly(g, tooltip="text", height=400)
-ggplotly(g, tooltip="text")
+# lonlat_jitter <- data.places.physical %>%
+#     st_jitter(amount = 0.0005 * sqrt((x.lim[1] - x.lim[2])**2 + (y.lim[1] - y.lim[2])**2)) %>%
+#     st_coordinates() %>%
+#     as_tibble() %>%
+#     rename(lon.jitter=X, lat.jitter=Y)
+# places <- data.places.physical %>%
+#     cbind(lonlat) %>%
+#     cbind(lonlat_jitter)
+
+# bandwidth <- c(MASS::bandwidth.nrd(places$lon), MASS::bandwidth.nrd(places$lat)) / 4
+# kde <- bkde2D(places %>% select(lon, lat), bandwidth=bandwidth, gridsize=2000*c(1,1))
+# CL <- contourLines(kde$x1 , kde$x2 , kde$fhat)
 ```
 
-Not a huge surprise: very large cluster around Ezra Stiles College. Note the little Koffee? bump. And a good little cluster around East Rock (and one West Rock).
+Like a topographic map, the map below shows contour lines which guide the eye to points of interest. The more bunched-together the lines, the sharper the incline.
+
+```{r}
+# Estimate kernel density
+# Heavily adapted from https://gis.stackexchange.com/questions/168886/r-how-to-build-heatmap-with-the-leaflet-package
+kde <- MASS::kde2d(places$lon, places$lat, n=c(64, 75), lims=c(x.lim[1], x.lim[2], y.lim[1], y.lim[2]))
+# Create contour lines (level curves)
+CL <- contourLines(kde$x , kde$y , kde$z, nlevels=13)
+# Format contour lines as SpatialPolygon for Leaflet
+spgons <- SpatialPolygons(
+    lapply(1:length(CL), function(i) {
+        Polygons(list(Polygon(cbind(CL[[i]]$x, CL[[i]]$y))), ID=i)
+    })
+)
+```
+
+```{r layout="l-page", fig.cap="Interact with this map! Hover over points to see their name; pan and zoom around. Darker contour lines represent higher intensity."}
+# Compute colors for the level curves (https://rstudio.github.io/leaflet/colors.html)
+levels <- sapply(CL, `[[`, "level")
+colorpal <- colorNumeric(palette="YlOrRd", domain=c(-max(levels)/2, max(levels)))
+
+leaflet(spgons) %>% addTiles() %>%
+    addProviderTiles(providers$CartoDB.Positron) %>%
+    setView(-72.93, 41.3155, 14) %>%
+    addPolylines(color=colorpal(levels), opacity=1, weight=3) %>%
+    addCircleMarkers(data=places, lng=~lon.jitter, lat=~lat.jitter, label=~Name,
+                     radius=3, fillOpacity=0.8, fillColor="yellow",  # Interior
+                     weight=1, opacity=0.8, color="black")  # Exterior
+```
+
+Fun notes:
+
+* Extraordinarily large cluster around Ezra Stiles College. (There is also one[1] Morse point.)
+* The Stiles Mountain gives way to a high plateau through Sterling Library, Bass, and Cross Campus.
+* There is also a noteworthy knob on Old Campus.
+* Koffee? and East Rock Park are also so well-loved to merit their own contour lines.
+
+There are also some other clusters which reveal themselves to the eye, even if not the contours:
+
+* Yale Science buildings (buildings on Science Hill)
+* Dunham Lab (including the "Math Lounge") and the CEID dynamic duo
+* Off-campus residences scattered around the Yale bubble
+* Various green spaces, including East Rock, West Rock, Edgerton Park, and Scantlebury Park
+* Various forms of dining
 
 ## Virtual realm
 
@@ -76,7 +118,7 @@ data.places.virt <- read.csv(paste("data/places.virt_" , t, ".csv", sep=""))
 
 The venerable word cloud lives to see another day:
 
-```{r layout="l-screen shaded"}
+```{r layout="l-page shaded"}
 set.seed(2021)
 places <- data.places.virt %>%
     mutate(angle = 90 * sample(c(0, 1), n(), replace=T, prob=c(60, 40))) %>%
@@ -127,4 +169,51 @@ g <- ggplot(data=p_jitter) +
     geom_point(aes(x=x, y=y), color="yellow", alpha=0.9) +  # Use geom_point for nice plotly hovers
     lims(x=x.lim, y=y.lim) +
         theme(axis.text=element_blank(), axis.ticks=element_blank(), axis.title=element_blank())
+```
+
+```{r echo=F, eval=F}
+# Defunct code after moving from downloaded raster maps to tiles fetched each time.
+library(ggmap)
+library(plotly)
+
+# Get Places data
+t <- "20201227_235052"
+data.places.physical <- readRDS(paste("data/places.physical_" , t, ".rds"))
+# Define bounding box for our region of New Haven (will be the default zoom
+# level of our visualization), but also define a slightly larger bounding box
+# to give some more border in case viewers want to zoom out.
+x.lim0 <- c(-72.939, -72.903)
+y.lim0 <- c(41.302, 41.332)
+x.lim <- x.lim0 + 0.04 * c(-1, 1)
+y.lim <- y.lim0 + 0.02 * c(-1, 1)
+p_jitter <- data.places.physical %>%
+    st_crop(xmin=x.lim[1], xmax=x.lim[2], ymin=y.lim[1], ymax=y.lim[2]) %>%
+    st_jitter(factor=0.001)
+p_jitter['lon'] <- map_dbl(p_jitter$geometry, ~.[1])
+p_jitter['lat'] <- map_dbl(p_jitter$geometry, ~.[2])
+# Get map data
+# newhaven_lowres <- get_stamenmap(bbox=c(left=x.lim[1], right=x.lim[2], bottom=y.lim[1], top=y.lim[2]), zoom=15)
+# newhaven_medres <- get_stamenmap(bbox=c(left=x.lim[1], right=x.lim[2], bottom=y.lim[1], top=y.lim[2]), zoom=16)
+# newhaven <- get_stamenmap(bbox=c(left=x.lim[1], right=x.lim[2], bottom=y.lim[1], top=y.lim[2]), zoom=17)
+# saveRDS(newhaven_lowres, "data/newhaven_lowres.rds", compress=F)
+# saveRDS(newhaven_medres, "data/newhaven_medres.rds", compress=F)
+# saveRDS(newhaven, "data/newhaven.rds", compress=F)
+newhaven_lowres <- readRDS("data/newhaven_lowres.rds")
+newhaven_medres <- readRDS("data/newhaven_medres.rds")
+newhaven <- readRDS("data/newhaven.rds")
+
+g <- ggmap(newhaven_lowres) +
+    inset_ggmap(newhaven_medres) +
+    inset_ggmap(newhaven) +
+    # Sadly, plotly isn't ready for density_2d_filled
+    geom_density_2d(data=p_jitter, aes(x=lon, y=lat), size=0.4, alpha=0.8, bins=15) +
+    geom_point(data=p_jitter, aes(x=lon, y=lat, text=Name),
+               shape=21, fill="yellow", color="black", size=0.8, stroke=0.1, alpha=0.8) +
+    lims(x=x.lim0, y=y.lim0) +
+    theme_tufte() +
+    theme(axis.text=element_blank(), axis.ticks=element_blank(), axis.title=element_blank())
+
+# https://stackoverflow.com/questions/34605919/formatting-mouse-over-labels-in-plotly-when-using-ggplotly
+# ggplotly(g, tooltip="text", height=400)
+ggplotly(g, tooltip="text")
 ```
