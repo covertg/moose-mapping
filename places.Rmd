@@ -19,6 +19,7 @@ library(leaflet)
 library(RColorBrewer)
 library(sp)
 library(sf)
+library(smoothr)
 ```
 
 ## Overview
@@ -79,6 +80,8 @@ spgons <- SpatialPolygons(
         Polygons(list(Polygon(cbind(CL[[i]]$x, CL[[i]]$y))), ID=i)
     })
 )
+# Smooth contour lines
+spgons <- smooth(spgons, method="chaikin", refinements=5)
 ```
 
 ```{r layout="l-page", fig.cap="Interact with this map! Hover over points to see their name; pan and zoom around. Darker contour lines represent higher intensity."}
@@ -86,7 +89,7 @@ spgons <- SpatialPolygons(
 levels <- sapply(CL, `[[`, "level")
 colorpal <- colorNumeric(palette="YlOrRd", domain=c(-max(levels)/2, max(levels)))
 
-leaflet(spgons) %>% addTiles() %>%
+leaflet(spgons) %>%
     addProviderTiles(providers$CartoDB.Positron) %>%
     setView(-72.93, 41.3155, 14) %>%
     addPolylines(color=colorpal(levels), opacity=1, weight=3) %>%

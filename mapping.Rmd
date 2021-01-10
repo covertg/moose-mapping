@@ -1,6 +1,9 @@
 ---
 title: "Mapping Moose"
-description: "Movements of the Herd"
+description: Movements of the Herd
+output:
+  distill::distill_article:
+    toc: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -12,25 +15,95 @@ library(tidyverse)
 library(rnaturalearth)
 library(sf)
 library(ggthemes)
-library(plotly)
-library(gganimate)  # also requires transformr
+library(leaflet)
+library(leaflet.extras2)
+#library(plotly)
+#library(gganimate)  # also requires transformr
 ```
 
 We want to animate people's locations over the past few months.
 
 ```{r}
 t <- "20201227_235052"
-data.locations.conn <- readRDS(paste("data/locations.conn_", t, ".rds", sep=""))
+data.locations <- readRDS(paste("data/locations_", t, ".rds", sep=""))
 ```
 
-```{r results='hide'}
-world <- ne_countries(scale="large", returnclass="sf")
+```{r layout="l-page"}
+d <- data.locations %>%
+    mutate(time=as.Date(Day, origin="2020-01-01", tz=UTC)) %>%
+    st_jitter(factor=0.0001) %>%  # For respondents whose locations stay constant for a while
+    split(data.locations$ID)
+
+leaflet() %>%
+    addProviderTiles(providers$Stamen.Watercolor) %>%
+    addPlayback(data=d,
+                options=playbackOptions(radius=1, tracksLayer=F, dateControl=T,
+                                        tickLen=1000*60*60*24/4,  # 1/4 day
+                                        speed=1*60*60*24*35,  # 7 day/sec
+                                        maxInterpolationTime=1000*60*60*24*365,
+                                        staleTime=10000000000000000*60*60*24*365))
+```
+
+```{r eval=F}
+# data <- sf::st_as_sf(leaflet::atlStorms2005[1:5,])
+# data$Name <- as.character(data$Name)
+# data <- st_cast(data, "POINT")
+# data <- split(data, f = data$Name)
+# lapply(1:length(data), function(x) {
+#   data[[x]]$time <<- as.POSIXct(
+#     seq.POSIXt(Sys.time()-365*24*60*60*1000, Sys.time(), length.out = nrow(data[[x]])), tz="UTC")
+# })
+# 
+# leaflet() %>%
+#   addTiles() %>%
+#   addPlayback(data = data,
+#               options = playbackOptions(radius = 3, tickLen=24*60*60*1000,
+#                                         color = c("red","green","blue", "orange","yellow")),
+#               pathOpts = pathOptions(weight = 5))
+
+## Single Elements
+data <- sf::st_as_sf(leaflet::atlStorms2005[1,])
+data <- st_cast(data, "POINT")
+data$time = as.POSIXct(
+  seq.POSIXt(from=Sys.time()-1*60*60*24*365, to=Sys.time(), length.out = nrow(data)))
+
+leaflet() %>%
+  addTiles() %>%
+  addPlayback(data = data,
+              options = playbackOptions(radius=3, tickLen=1000*60*60*24,
+                                        maxInterpolationTime=1000*60*60*24*100,
+                                        speed=1000000*60*60*24),
+              pathOpts = pathOptions(weight = 5))
+
+d <- data.locations.conn %>%
+    filter(ID == "R_yr6nbKVs9yEjg9r") %>%
+    mutate(time=as.POSIXct(as.Date(Day, origin="2020-01-01"), tz=UTC)) %>%
+    select(time, geometry)
+
+leaflet() %>%
+    addPlayback(data=d,
+                options = playbackOptions(radius=3, tickLen=1000*60*60*24,
+                                        maxInterpolationTime=1000*60*60*24*365,
+                                        speed=1000*60*60*24,
+                                        staleTime=1000*60*60*24*365),
+              pathOpts = pathOptions(weight = 5))
+```
+
+```{r eval=F, echo=F}
+world <- ne_countries(scale="medium", returnclass="sf")
 usa_states <- ne_states("united states of america", returnclass="sf")
+
+library(leaflet)
+library(leaftime)
+leaflet() %>%
+    addPolygons(data=world, smoothFactor=1, fillColor="#aaa", fillOpacity=1,
+                weight=1, opacity=1, color="#111") %>%
+    addPolylines(data=usa_states, smoothFactor=1, weight=1, opacity=1, color="#222")
 ```
 
 There are two similar approaches. The software library plotly offers a pretty nice way to turn ggplots into interactive visualizations which can can animate through time. Unfortunately, it currently appears to be a limitation that the animation slider's breakpoints must be evenly spaced.^[https://stackoverflow.com/questions/65334985/how-to-customize-plotly-r-ggplot2-animation-breakpoints-frame-spacing-duration] This is undesirable for us, since our waypoints and epochs are not evenly-spaced. Using day of the year seems misleading in this case, and a full English description of the epoch/waypoint is too long to fit, so we use an abbreviated Epoch/Waypoint label. Refer to the table below for the date/season itself.
 
-```{r layout="l-body-outset"}
+```{r layout="l-body-outset", eval=F}
 bbox <- st_bbox(data.locations.conn)
 l_jitter <- data.locations.conn %>%
     st_jitter(factor=0.0002) %>%
@@ -61,7 +134,7 @@ ggplotly(g, tooltip=c("Year", "Connectedness")) %>%
 
 If we sacrifice the interactiveness, a more true-to-time visualization is given by ``gganimate``.
 
-```{r}
+```{r eval=F}
 epoch_days <- c("1"=13, "2"=67, "2.5"=76, "3"=83, "4"=128, "5"=244, "6"=327, "7"=365)
 day2season <- function(d) {
     d <- as.numeric(d)

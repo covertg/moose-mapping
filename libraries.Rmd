@@ -36,6 +36,7 @@ Thank you dear open source community <3
 * plotly
 * rnaturalearth
 * Stamen maps
+* https://github.com/covertg/LeafletPlayback/
 
 ```{r}
 sessionInfo()

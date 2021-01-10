@@ -3,6 +3,7 @@ title: "Data Formatting & Augmentation"
 output:
     distill::distill_article:
         toc: true
+        toc_depth: 4
 ---
 
 ```{r setup, include=FALSE}
@@ -19,7 +20,7 @@ library(tools)
 
 ## Overview
 
-It is almost time to really soup up the data: we will augment some of it (tie-in other useful datasets or descriptions) and continue to reformat much of it. However, as discussed in **Data Intro**, some of the the data must, lamentably, be cleaned up by-hand. The following steps were done following the previous page but before the code of the present page:
+It is nigh time to really soup up the data: we will augment some of it (tie-in other useful datasets or descriptions) and continue to reformat much of it. However, as discussed in **Data Intro**, some of the the data must, lamentably, be cleaned up by-hand. The following steps were done following the previous page but before the code of the present page:
 
 * Rewrite some entries in the `Location` and `Place` data to be specific enough for geocoding via Google's API or my own knowledge. For example, "Brick Oven Pizza" was updated to "Brick oven Pizza New Haven," "my dorm" was updated to "Stiles Dorm," and so on.
 * Fix wrong entries of "Off-campus" and "Not in New Haven" (`Dorm1`, `Dorm5`) if the response does not correctly correspond to the approximate location data (`Loc1`, `Loc5`). For example, if the listed dorm information is "Off-campus" but the corresponding location is outside of New Haven, it is updated to "Not in New Haven."
@@ -35,7 +36,6 @@ In the sections to follow, a nomenclature for talking about the different time p
 Some data is also a handmade set of geographic polygons corresponding to the different dorms that have housed Stiles students.-->
 
 ```{r}
-# Read location and place data into two separate dataframes
 t <- "20201227_235052"
 data.students.loc <- read.csv(paste("data/students_", t, "_locclean.csv", sep="")) %>%
     select(-c(Email, starts_with("Place"))) %>%
@@ -48,11 +48,106 @@ data.students.loc <- read.csv(paste("data/students_", t, "_locclean.csv", sep=""
             T ~ Dorm5))
 ```
 
-## Epochs & Waypoints
+## Prep for Mapping Moose
+
+### Epochs & Waypoints
 
 For each time period ("epoch" as dicussed on the [previous page](data_intro.html#interpretation)), students could list an arbitrary number of locations in which they resided over that time. Let's expand those places into new columns ("waypoints"), each named Loc<sub>e,w</sub> where `e` is the epoch (time period) and `w` is the numbered waypoint. For the sake of these visualizations, we assume that the waypoints are equally spaced in time. This interpolation is obviously not the case, but seems a reasonable compromise for not making respondents fill in every single precise date.
 
+#### Lengthen
+
 ```{r}
+data.locations <- data.students.loc %>%
+    # Convert each Location column from a string (delimited by ";") to a str vector
+    mutate(across(c(Loc1, Loc2, Loc2.5, Loc3, Loc4, Loc5, Loc6), str_split, pattern=";")) %>%
+    # First lengthening: pivot Location columns into rows (clarifying that Location is an address)
+    pivot_longer(c(Loc1, Loc2, Loc2.5, Loc3, Loc4, Loc5, Loc6),
+                 names_to=c("Epoch"),
+                 names_pattern="Loc(.*)",
+                 values_to="Address") %>%
+    # Second lengthening: un-nest the string vector we made, essentially pivoting
+    # each with containing vectors to multiple rows containing elements. The number
+    # of places that a respondent lists becomes the number of "Waypoints" that
+    # they go through in a given epoch.
+    unnest_longer(Address, indices_to="Waypoint") %>%
+    # Cleanup
+    mutate(Address=trimws(Address))
+
+# How many Waypoints end up in each Epoch?
+mw <- data.locations %>% group_by(Epoch) %>% summarize(MaxWaypoint=max(Waypoint))
+mw
+```
+
+Note that many respondents don't have data listed for some Waypoints, since not everyone listed the same number of locations in each epoch. (In fact, the majority didn't move around that much within each epoch.) We just assume that their location stays constant until the next-provided location.
+
+#### Identify Epochs & Waypoints
+
+We now add in a couple of ways to help the visualizations make a bit more sense out of the Epoch/Waypoint nomenclature. In one we'll convert Epoch/Waypoint to days of the year (from 1 to 365), and in another just a string combination of the Epoch/Waypoint labels.
+
+First: approximate dates of 2020.
+
+```{r}
+# Compute day of the year
+epoch_days <- c("1"=13, "2"=67, "2.5"=76, "3"=83, "4"=128, "5"=244, "6"=327, "7"=366)
+n_waypoints <- setNames(
+    mw$MaxWaypoint,
+    nm=mw$Epoch
+)
+epoch_lengths <- setNames(
+    epoch_days[2:8] - epoch_days[1:7],
+    mw$Epoch
+)
+data.locations <- data.locations %>%
+    mutate(days_no_waypt=epoch_days[Epoch]) %>%
+    mutate(waypt_duration=round(
+        (epoch_lengths[Epoch] / n_waypoints[Epoch]) * (as.numeric(Waypoint) - 1)
+    )) %>%
+    mutate(Day=(days_no_waypt + waypt_duration)) %>%
+    select(-c(days_no_waypt, waypt_duration))
+```
+
+Now we augment the data just a little bit more to complete our assumption that people's locations stayed constant until the next-provided location. In order to make for sane interpolations when animating people's movements on a map, we want to clarify their location immediately prior to the next epoch. Otherwise, some people might slowly interpolate across the country over a series of many days.
+
+```{r}
+# Sorry, this isn't tidy in the slightest. It involves selectively duplicating
+# and then modifying rows, which is much more readable and approachable via loops.
+
+# for s in students
+for (id in unique(data.locations$ID)) {
+    s <- data.locations %>% filter(ID==id)
+    # for e in epochs
+    for (e in c(1, 2, "2.5", 3, 4, 5, 6)) {
+        # get the students' last waypoint in epoch t
+        w <- s %>% filter(Epoch==e)
+        mw <- max(w$Waypoint)
+        # copy that row, but set Waypoint to "end" and Day to (next epoch start - 1)
+        new_row <- w %>% filter(Waypoint==mw) %>%
+            mutate(Waypoint="end") %>%
+            mutate(Day=epoch_days[which(names(epoch_days)==e)+1]-1)
+        data.locations <- data.locations %>% rbind(new_row)
+    }
+}
+```
+
+Finally: a simple label that pastes Epoch-Waypoint together.
+
+```{r}
+data.locations <- data.locations %>%
+    mutate(TimeEW=paste("t", Epoch, "-", Waypoint, sep="")) %>%
+    arrange(ID, TimeEW)
+```
+
+```{r}
+data.locations.conn <- data.locations
+data.locations <- data.locations %>% select(-c(Conn1:Conn6))
+```
+
+
+```{r echo=F, eval=F}
+# We used to to this MUCH less tidily, and then it was modified when I returned
+# to make the "-end" waypoint to help make interpolations more realistic for
+# Mapping Moose. Code is saved for posterity.
+
 # Given a vector of strings representing locations, returns the jth location if
 # available, else the last location in the vector. Used to "extract" locations
 # after the original data has been split into a vector with str_split.
@@ -91,41 +186,9 @@ data.students.loc <- data.students.loc %>%
 colnames(data.students.loc)
 ```
 
-It is time for a whole lot of `LENGTHENING` :-).
+```{r eval=F, echo=F}
+# Old code that re-merged Connectedness with Location data. Again kept for posterity.
 
-## Prep for Connectedness, Part 1
-
-### Lengthen
-
-```{r}
-# Lengthen connectedness through Epoch (waypoint data not collected)
-data.connectedness <- data.students.loc %>%
-    select(-c(Loc1_1:Loc6_5)) %>%
-    pivot_longer(Conn1:Conn6,
-                 names_to="Epoch",
-                 names_pattern="Conn(.*)",
-                 values_to="Connectedness")
-```
-
-We do this first so we can merge it back to location data.
-
-## Prep for Mapping Moose
-
-### Lengthen
-
-```{r}
-# Lengthen locations through Epoch and Waypoint
-data.locations <- data.students.loc %>%
-    select(-c(Conn1:Conn6)) %>%
-    pivot_longer(Loc1_1:Loc6_5,
-                names_to=c("Epoch", "Waypoint"),
-                 names_pattern="Loc(.*)_(.)",
-                 values_to="Address")
-```
-
-### Augment: Connectedness, Labels
-
-```{r}
 get_connectedness <- function(epoch, id) {
     return(as.numeric(data.connectedness %>%
                 filter(Epoch==ifelse(epoch=="2.5", "2", epoch) & ID==id) %>%
@@ -138,54 +201,17 @@ data.locations.conn <- data.locations %>%
     mutate(Connectedness=get_connectedness.V(Epoch, ID))
 ```
 
-Finally we'll add in a couple of ways to help the visualizations make a bit more sense out of the Epoch/Waypoint nomenclature. In one we'll convert Epoch/Waypoint to days of the year (from 1 to 365), and in another just a string combination of the Epoch/Waypoint labels.
+### Geocode with Google
 
-```{r}
-# Thanks to http://mistupid.com/calendar/dayofyear.htm for converting dates to
-# days of the year.
-epoch_days <- c("1"=13, "2"=67, "2.5"=76, "3"=83, "4"=128, "5"=244, "6"=327, "7"=365)
-n_waypoints <- c("1"=1, "2"=4, "2.5"=3, "3"=1, "4"=4, "5"=3, "6"=5)  # hardcoded
-epoch_lengths <- epoch_days[2:8] - epoch_days[1:7]
-names(epoch_lengths) <- names(n_waypoints)
-
-data.locations.conn <- data.locations.conn %>%
-    # Compute day of the year
-    mutate(days_no_waypt=epoch_days[Epoch]) %>%
-    mutate(waypt_duration=round(
-        (epoch_lengths[Epoch] / n_waypoints[Epoch]) * (as.numeric(Waypoint) - 1)
-    )) %>%
-    mutate(Day=days_no_waypt+waypt_duration) %>%
-    select(-c(days_no_waypt, waypt_duration)) %>%
-    # Simple label combination
-    mutate(TimeEW=paste("t", Epoch, "-", Waypoint, sep=""))
-```
-
-```{r eval=F, echo=F}
-# Also kept for posterity
-data.locations_long <- data.locations_long %>%
-    mutate(TimePrd=case_when(
-        Epoch == 1 ~ "Beginning S'20",
-        Epoch == 2 ~ "Spreak Wk1",
-        Epoch == 2.5~"Spreak Wk2",
-        Epoch == 3 ~ "S'20 after Spreak",
-        Epoch == 4 ~ "Summer",
-        Epoch == 5 ~ "Beginning F'20",
-        Epoch == 6 ~ "F'20 after Break",
-    )) %>%
-    mutate(TimeExact=paste(TimePrd, ".", Waypoint, sep=""))
-```
-
-### Geocoding with Google
-
-Final and most important augmentation here. (Note: we don't actually geocode in production, else website generation would take a long time.)
+Final and most important augmentation here.
 
 ```{r eval=F}
-data.locations.conn <- data.locations.conn %>%
+data.locations <- data.locations %>%
     # Could be made more efficient by only looking up unique locations
     mutate_geocode(Address) %>%
     st_as_sf(coords=c("lon", "lat"), crs=4326)  # Note that order should be LON, LAT
 
-saveRDS(data.locations.conn, file=paste("data/locations.conn_", t, ".rds", sep=""))
+saveRDS(data.locations, file=paste("data/locations_", t, ".rds", sep=""))
 ```
 
 Converts to Simple Features, which we love <3. Final product in the table below.
@@ -193,22 +219,39 @@ Converts to Simple Features, which we love <3. Final product in the table below.
 ### Data Table (Mapping Moose)
 
 ```{r}
-data.locations.conn <- readRDS(paste("data/locations.conn_", t, ".rds", sep=""))
-paged_table(sample_n(data.locations.conn, n()))
+data.locations <- readRDS(paste("data/locations_", t, ".rds", sep=""))
+paged_table(sample_n(data.locations, n()))
 ```
 
-## Prep for Connectedness, Part 2
+## Prep for Connectedness
+
+### Lengthen
 
 ```{r}
-data.connectedness <- data.locations.conn %>%
-    filter(Waypoint == 1) %>%  # Remove duplicated data in waypoints and epoch2.5
-    filter(Epoch != 2.5) %>%
-    st_set_geometry(NULL)  # Removes bugginess in saving to and loading from file
-# Augment an extra column to extend data through 2020 (365th day)
+# N.b., Waypoint data was not collected for Connectedness
+data.connectedness <- data.students.loc %>%
+    select(-c(Loc1:Loc6)) %>%
+    pivot_longer(Conn1:Conn6,
+                 names_to="Epoch",
+                 names_pattern="Conn(.*)",
+                 values_to="Connectedness")
+```
+
+### Calculate Day of Year
+
+Thankfully most of the setup work for this was done in the previous section :-).
+
+```{r}
+data.connectedness <- data.connectedness %>% mutate(Day=epoch_days[Epoch])
+```
+
+We also want to extend the data through 2020 (the 365th day) for the sake of visualizing estimated Connectedness through the year.
+
+```{r}
 data.connectedness <- data.connectedness %>%
     rbind(data.connectedness %>%
               filter(Epoch==6) %>%
-              mutate(Epoch=7, Day=365, TimeEW="t7-1"))
+              mutate(Epoch=7, Day=365))
 ```
 
 ### Data Table (Connectedness)
@@ -218,11 +261,9 @@ paged_table(sample_n(data.connectedness, n()))
 write.csv(data.connectedness, paste("data/connectedness_", t, ".csv", sep=""), row.names=F)
 ```
 
-Note similarities to prev data table.
-
 ## Prep for Nostalgia/Meaning
 
-Similarly, we want to geocode the "Place" data asking about nostalgia/meaning. However, as with the student Location data, we first needed to hand-clean the Place data in order to clarify certain locations. In addition, some places were removed for being vague or not specific enough, and some incorrect labels of Physical or Virtual were corrected.
+Similarly, we want to Geocode the "Place" data asking about nostalgia/meaning. However, as with the student Location data, we first needed to hand-clean the Place data in order to clarify certain locations. In addition, some places were removed for being vague or not specific enough, and some incorrect labels of Physical or Virtual were corrected.
 
 Note, however, that there are some special places which aren't lookup-able by Google or other geocoding services:
 
@@ -252,7 +293,7 @@ data.places.virt <- data.places %>%
     filter(Type=="Virtual")
 ```
 
-### Geocoding: Google, by Hand
+### Geocode by Hand
 
 ```{r}
 # Map stiles spots to GPS
@@ -284,7 +325,7 @@ data.places.stiles <- data.places.stiles %>%
     mutate(lat=get_yale_coord.V(Name, "Lat"))
 ```
 
-(Once again, we don't geocode or save to disk in production.)
+### Geocode by Google
 
 ```{r eval=F}
 # Automocatically geocode (google) all other spots to GPS
@@ -295,6 +336,10 @@ data.places.yale <- data.places.yale %>%
 range(data.places.yale$lon[is.finite(data.places.yale$lon)])  # [1] -73.32775 -72.89932
 range(data.places.yale$lat[is.finite(data.places.yale$lat)])  # [1] 41.11225 41.34746
 ```
+
+### Save!
+
+(A sufficient data table was given on the previous page.)
 
 ```{r eval=F}
 # Merge & save
