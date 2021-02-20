@@ -35,14 +35,10 @@ Also note that the remainder of the year, from November 21 through December, is 
 # Load data
 t <- "20201227_235052"
 data.connectedness <- read.csv(paste("data/connectedness_", t, ".csv", sep="")) %>%
-    mutate(Housing.F20=factor(
-        Housing.F20,
-        levels=c("On-campus Stiles", "On-campus OC", "Off-campus", "Remote"))) %>%
-        #levels=c("Stiles", "Old Campus", "Off-Campus", "Remote"))) %>%
-    mutate(Enrolled.F20=ifelse(is.na(Enrolled.F20), NA, ifelse(
-        Enrolled.F20==T, "Enrolled", "Not Enrolled"))) %>%
-    mutate(Enrolled.F20=factor(
-        Enrolled.F20, levels=c("Not Enrolled", "Enrolled")
+    mutate(Housing.F20=factor(Housing.F20, c("Stiles", "Old Campus", "Off-Campus", "Remote"))) %>%
+    mutate(Enrolled.F20=case_when(
+        Enrolled.F20 ~ "Enrolled",
+        !Enrolled.F20 ~ "Not Enrolled"
     )) %>%
     mutate(Year=as.factor(Year))
 # "Jitter" values just a little bit, so it's easier to see overlapping points

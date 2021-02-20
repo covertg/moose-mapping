@@ -350,7 +350,7 @@ data.places.virt <- data.places %>%
 
 ```{r}
 # Map stiles spots to GPS
-places.yale <- read.csv("data/yale_locations.csv")
+places.yale <- read.csv("data/yale.locations.csv")
 # Although this could be done with tidy functions (leaning heavily on case_when),
 # I think this approach is more readable and is much less repetitive. With small
 # data, the performance is no problem.

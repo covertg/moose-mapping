@@ -107,8 +107,8 @@ data.places.virt <- read.csv(paste0("data/places.virt_" , t, ".csv"))
 # Rotate and resize each word randomly
 set.seed(2021)
 places <- data.places.virt %>%
-    mutate(angle = 90 * sample(c(0, 1), n(), replace=T, prob=c(60, 40))) %>%
-    mutate(size = sample(c(10.4, 10.7, 11, 11.2), n(), replace=T, prob=c(31, 23, 23, 23)))
+    mutate(angle=90 * sample(c(0, 1), n(), replace=T, prob=c(60, 40))) %>%
+    mutate(size=sample(c(10.4, 10.7, 11, 11.2), n(), replace=T, prob=c(31, 23, 23, 23)))
 # Create word cloud
 ggplot(places, aes(label=Name, angle=angle, size=size)) +
     geom_text_wordcloud_area(eccentricity=0.4, family="Serif") +

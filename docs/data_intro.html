@@ -448,8 +448,15 @@ code span.wa { color: #bf0303; } /* Warning */
     top: 0;
   }
 
+  /* adjust viewport for navbar height */
+  /* helps vertically center bootstrap (non-distill) content */
+  .min-vh-100 {
+    min-height: calc(100vh - 100px) !important;
+  }
+
   </style>
 
+  <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
   <link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet"/>
   <link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet"/>
   <script src="site_libs/headroom-0.9.4/headroom.min.js"></script>
@@ -557,19 +564,21 @@ code span.wa { color: #bf0303; } /* Warning */
             var results = fuse.search(query, searchOptions);
             callback(results
               .map(function(result) { return result.item; })
-              .filter(function(item) { return !!item.description; })
             );
           },
           templates: {
             suggestion: function(suggestion) {
+              var img = suggestion.preview && Object.keys(suggestion.preview).length > 0
+                ? `<img src="${offsetURL(suggestion.preview)}"</img>`
+                : '';
               var html = `
                 <div class="search-item">
                   <h3>${suggestion.title}</h3>
                   <div class="search-item-description">
-                    ${suggestion.description}
+                    ${suggestion.description || ''}
                   </div>
                   <div class="search-item-preview">
-                    <img src="${suggestion.preview ? offsetURL(suggestion.preview) : ''}"</img>
+                    ${img}
                   </div>
                 </div>
               `;
@@ -592,6 +601,10 @@ code span.wa { color: #bf0303; } /* Warning */
   </script>
 
   <style type="text/css">
+
+  .nav-search {
+    font-size: x-small;
+  }
 
   /* Algolioa Autocomplete */
 
@@ -667,6 +680,7 @@ code span.wa { color: #bf0303; } /* Warning */
   }
 
   .algolia-autocomplete .aa-dropdown-menu .aa-suggestion .search-item h3 {
+    font-size: 1rem;
     margin-block-start: 0;
     margin-block-end: 5px;
   }
@@ -894,6 +908,11 @@ code span.wa { color: #bf0303; } /* Warning */
     text-decoration: underline;
   }
 
+  d-article details {
+    grid-column: text;
+    margin-bottom: 0.8em;
+  }
+
   @media(min-width: 768px) {
 
   d-article pre,
@@ -1048,6 +1067,17 @@ code span.wa { color: #bf0303; } /* Warning */
 
   div.hanging-indent{
     margin-left: 1em; text-indent: -1em;
+  }
+
+  /* Citation hover box */
+
+  .tippy-box[data-theme~=light-border] {
+    background-color: rgba(250, 250, 250, 0.95);
+  }
+
+  .tippy-content > p {
+    margin-bottom: 0;
+    padding: 2px;
   }
 
 
@@ -1715,7 +1745,7 @@ code span.wa { color: #bf0303; } /* Warning */
       var layout = $(this).attr('data-layout');
 
       // apply layout to markdown level block elements
-      var elements = $(this).children().not('div.sourceCode, pre, script');
+      var elements = $(this).children().not('details, div.sourceCode, pre, script');
       elements.each(function(i, el) {
         var layout_div = $('<div class="' + layout + '"></div>');
         if (layout_div.hasClass('shaded')) {
@@ -1830,6 +1860,20 @@ code span.wa { color: #bf0303; } /* Warning */
       // move appendix-bottom entries to the bottom
       $('.appendix-bottom').appendTo('d-appendix').children().unwrap();
       $('.appendix-bottom').remove();
+
+      // hoverable references
+      $('span.citation[data-cites]').each(function() {
+        var refHtml = $('#ref-' + $(this).attr('data-cites')).html();
+        window.tippy(this, {
+          allowHTML: true,
+          content: refHtml,
+          maxWidth: 500,
+          interactive: true,
+          interactiveBorder: 10,
+          theme: 'light-border',
+          placement: 'bottom-start'
+        });
+      });
 
       // clear polling timer
       clearInterval(tid);
@@ -2285,7 +2329,7 @@ code span.wa { color: #bf0303; } /* Warning */
 
   d-article div.sourceCode code,
   d-article pre code {
-  	font-family: var(--mono-font), var(--mono-default);
+    font-family: var(--mono-font), var(--mono-default);
   }
 
 
@@ -2310,76 +2354,78 @@ code span.wa { color: #bf0303; } /* Warning */
   }
 
   /*-- BODY --*/
-  /* only text inside of <p> tags */
-  d-article > p {
+  d-article > p,  /* only text inside of <p> tags */
+  d-article > ul, /* lists */
+  d-article > ol {
     color: var(--body-color, rgba(0, 0, 0, 0.8));
     font-size: var(--body-size, 1.06rem);
   }
 
+
   /*-- CODE --*/
   d-article div.sourceCode code,
   d-article pre code {
-  	font-size: var(--code-size, 14px);
+    font-size: var(--code-size, 14px);
   }
 
   /*-- ASIDE --*/
   d-article aside {
-  	font-size: var(--aside-size, 12px);
-  	color: var(--aside-color, rgba(0, 0, 0, 0.6));
+    font-size: var(--aside-size, 12px);
+    color: var(--aside-color, rgba(0, 0, 0, 0.6));
   }
 
   /*-- FIGURE CAPTIONS --*/
   figure .caption,
   figure figcaption,
   .figure .caption {
-  	font-size: var(--fig-cap-size, 13px);
-  	color: var(--fig-cap-color, rgba(0, 0, 0, 0.6));
+    font-size: var(--fig-cap-size, 13px);
+    color: var(--fig-cap-color, rgba(0, 0, 0, 0.6));
   }
 
   /*-- METADATA --*/
   d-byline h3 {
-  	font-size: var(--heading-size, 0.6rem);
-  	color: var(--heading-color, rgba(0, 0, 0, 0.5));
+    font-size: var(--heading-size, 0.6rem);
+    color: var(--heading-color, rgba(0, 0, 0, 0.5));
   }
 
   d-byline {
-  	font-size: var(--body-size, 0.8rem);
-  	color: var(--body-color, rgba(0, 0, 0, 0.8));
+    font-size: var(--body-size, 0.8rem);
+    color: var(--body-color, rgba(0, 0, 0, 0.8));
   }
 
   d-byline a,
   d-article d-byline a {
-  	color: var(--body-color, rgba(0, 0, 0, 0.8));
+    color: var(--body-color, rgba(0, 0, 0, 0.8));
   }
 
   /*-- TABLE OF CONTENTS --*/
   .d-contents nav h3 {
-  	font-size: var(--heading-size, 18px);
+    font-size: var(--heading-size, 18px);
   }
 
   .d-contents nav a {
-  	font-size: var(--contents-size, 13px);
+    font-size: var(--contents-size, 13px);
   }
 
   /*-- APPENDIX --*/
   d-appendix h3 {
     font-size: var(--heading-size, 15px);
-  	color: var(--heading-color, rgba(0, 0, 0, 0.65));
+    color: var(--heading-color, rgba(0, 0, 0, 0.65));
   }
 
   d-appendix {
     font-size: var(--text-size, 0.8em);
-  	color: var(--text-color, rgba(0, 0, 0, 0.5));
+    color: var(--text-color, rgba(0, 0, 0, 0.5));
   }
 
   d-appendix d-footnote-list a.footnote-backlink {
-  	color: var(--text-color, rgba(0, 0, 0, 0.5));
+    color: var(--text-color, rgba(0, 0, 0, 0.5));
   }
 
   /*-- WEBSITE HEADER + FOOTER --*/
   .distill-site-header .title {
-  	font-size: var(--title-size, 18px);
-  	font-family: var(--navbar-font), var(--heading-default);
+    font-size: var(--title-size, 18px);
+    font-family: var(--navbar-font), var(--heading-default);
   }
 
   .distill-site-header a,
@@ -2387,30 +2433,39 @@ code span.wa { color: #bf0303; } /* Warning */
     font-family: var(--navbar-font), var(--heading-default);
   }
 
-  .distill-site-header a:hover {
-  	color: var(--hover-color, white);
+  .nav-dropdown .nav-dropbtn {
+    color: var(--text-color, rgba(255, 255, 255, 0.8));
+    font-size: var(--text-size, 15px);
+  }
+
+  .distill-site-header a:hover,
+  .nav-dropdown:hover .nav-dropbtn {
+    color: var(--hover-color, white);
   }
 
   .distill-site-header {
-  	font-size: var(--text-size, 15px);
-  	color: var(--text-color, rgba(255, 255, 255, 0.8));
-  	background-color: var(--bkgd-color, #0F2E3D);
+    font-size: var(--text-size, 15px);
+    color: var(--text-color, rgba(255, 255, 255, 0.8));
+    background-color: var(--bkgd-color, #0F2E3D);
   }
 
   .distill-site-footer {
-  	font-size: var(--text-size, 15px);
-  	color: var(--text-color, rgba(255, 255, 255, 0.8));
-  	background-color: var(--bkgd-color, #0F2E3D);
+    font-size: var(--text-size, 15px);
+    color: var(--text-color, rgba(255, 255, 255, 0.8));
+    background-color: var(--bkgd-color, #0F2E3D);
   }
 
   .distill-site-footer a:hover {
-  	color: var(--hover-color, white);
+    color: var(--hover-color, white);
   }</style>
   <!--/radix_placeholder_distill-->
-  <script src="site_libs/header-attrs-2.6/header-attrs.js"></script>
+  <script src="site_libs/header-attrs-2.7/header-attrs.js"></script>
   <link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
   <script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
-  <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+  <script src="site_libs/popper-2.6.0/popper.min.js"></script>
+  <link href="site_libs/tippy-6.2.7/tippy.css" rel="stylesheet" />
+  <link href="site_libs/tippy-6.2.7/tippy-light-border.css" rel="stylesheet" />
+  <script src="site_libs/tippy-6.2.7/tippy.umd.min.js"></script>
   <script src="site_libs/anchor-4.2.2/anchor.min.js"></script>
   <script src="site_libs/bowser-1.9.3/bowser.min.js"></script>
   <script src="site_libs/webcomponents-2.0.0/webcomponents.js"></script>
@@ -2504,7 +2559,7 @@ Code &amp; Data
 <p>The data table below gives a first look at the Qualtrics survey responses! (Excepting a few personally-identifying data points.)</p>
 <div class="layout-chunk" data-layout="l-body">
 <div class="sourceCode">
-<pre><code><span class='va'>data.qualtrics</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/utils/read.table.html'>read.csv</a></span><span class='op'>(</span><span class='st'>"data/qualtrics_20201227_233000.csv"</span><span class='op'>)</span> <span class='op'>%&gt;%</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span class='va'>data.qualtrics</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/utils/read.table.html'>read.csv</a></span><span class='op'>(</span><span class='st'>"data/qualtrics_20201227_233000.csv"</span><span class='op'>)</span> <span class='op'>%&gt;%</span>
     <span class='fu'>slice</span><span class='op'>(</span><span class='fl'>3</span><span class='op'>:</span><span class='fu'>n</span><span class='op'>(</span><span class='op'>)</span><span class='op'>)</span> <span class='op'>%&gt;%</span>  <span class='co'># First two rows do not have respondent data; remove them</span>
     <span class='fu'>na_if</span><span class='op'>(</span><span class='st'>""</span><span class='op'>)</span>  <span class='co'># Qualtrics saves NA in CSV as blank strings; reset those to NA</span>
 
@@ -2521,7 +2576,7 @@ Code &amp; Data
 <p>A number of data-cleaning steps become quickly apparent: some rows are empty or partially empty (representing those who opened the survey but did not complete it); the columns are named quite unhelpfully (e.g. “Q20.1_1_1”), and there seem to be many columns that are not relevant. As a first cleaning step, we rename the relevant columns, remove all unwanted columns, and trim empty rows (keeping partial responses).</p>
 <div class="layout-chunk" data-layout="l-body">
 <div class="sourceCode">
-<pre><code><span class='va'>data.students</span> <span class='op'>&lt;-</span> <span class='va'>data.qualtrics</span> <span class='op'>%&gt;%</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span class='va'>data.students</span> <span class='op'>&lt;-</span> <span class='va'>data.qualtrics</span> <span class='op'>%&gt;%</span>
     <span class='fu'>transmute</span><span class='op'>(</span>
         <span class='co'># Student info</span>
         Year<span class='op'>=</span><span class='va'>Q24</span>, Email<span class='op'>=</span><span class='va'>Q25</span>,
@@ -2557,7 +2612,7 @@ Code &amp; Data
 <p>In addition, there remain some discrepancies in the location and place data. In order to plot students’ locations or meaningful places on a map, we will want to programatically convert the text-strings of location names (e.g. “Ashley’s Ice Cream”) to GPS coordinates; however, not all respondents gave specific-enough location names for something like the Google Maps service to find the location’s coordinates. Therefore, some by-hand reformatting will be (unfortunately) necessary. As a first step, we can start some of this work for the Spring and Fall semesters (pre-break) by inferring precise location names from dorm data:</p>
 <div class="layout-chunk" data-layout="l-body">
 <div class="sourceCode">
-<pre><code><span class='va'>data.students</span> <span class='op'>&lt;-</span> <span class='va'>data.students</span> <span class='op'>%&gt;%</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span class='va'>data.students</span> <span class='op'>&lt;-</span> <span class='va'>data.students</span> <span class='op'>%&gt;%</span>
     <span class='fu'>mutate</span><span class='op'>(</span>Loc1 <span class='op'>=</span> <span class='fu'>case_when</span><span class='op'>(</span>
         <span class='fu'><a href='https://rdrr.io/r/base/grep.html'>grepl</a></span><span class='op'>(</span><span class='st'>"Stiles"</span>, <span class='va'>Dorm1</span><span class='op'>)</span> <span class='op'>~</span> <span class='st'>"Ezra Stiles College New Haven"</span>,
         <span class='fu'><a href='https://rdrr.io/r/base/grep.html'>grepl</a></span><span class='op'>(</span><span class='st'>"Lawrance"</span>, <span class='va'>Dorm1</span><span class='op'>)</span> <span class='op'>~</span> <span class='st'>"Lawrance Hall New Haven"</span>,
@@ -2577,7 +2632,7 @@ Code &amp; Data
 <h3 id="data-table-cleaned-survey-responses">Data Table (Cleaned Survey Responses)</h3>
 <div class="layout-chunk" data-layout="l-body">
 <div class="sourceCode">
-<pre><code><span class='fu'>paged_table</span><span class='op'>(</span><span class='va'>data.students</span> <span class='op'>%&gt;%</span> <span class='fu'>select</span><span class='op'>(</span><span class='op'>!</span><span class='va'>Email</span><span class='op'>)</span>, options<span class='op'>=</span><span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span><span class='op'>(</span>rows.print<span class='op'>=</span><span class='fl'>25</span><span class='op'>)</span><span class='op'>)</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span class='fu'>paged_table</span><span class='op'>(</span><span class='va'>data.students</span> <span class='op'>%&gt;%</span> <span class='fu'>select</span><span class='op'>(</span><span class='op'>!</span><span class='va'>Email</span><span class='op'>)</span>, options<span class='op'>=</span><span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span><span class='op'>(</span>rows.print<span class='op'>=</span><span class='fl'>25</span><span class='op'>)</span><span class='op'>)</span>
 </code></pre>
 </div>
 <div data-pagedtable="false">
@@ -2586,7 +2641,7 @@ Code &amp; Data
   </script>
 </div>
 <div class="sourceCode">
-<pre><code><span class='fu'><a href='https://rdrr.io/r/base/colnames.html'>colnames</a></span><span class='op'>(</span><span class='va'>data.students</span><span class='op'>)</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span class='fu'><a href='https://rdrr.io/r/base/colnames.html'>colnames</a></span><span class='op'>(</span><span class='va'>data.students</span><span class='op'>)</span>
 </code></pre>
 </div>
 <pre><code> [1] &quot;Year&quot;         &quot;Email&quot;        &quot;Enrolled.F20&quot; &quot;Loc1&quot;        
@@ -2672,7 +2727,7 @@ Code &amp; Data
 <p>Hence, we extract the place data from the larger survey dataset. We <code>l e n g t h e n</code> the data by pivoting the <code>Place</code> column-pairs (Place<sub>i</sub>.n, Place<sub>i</sub>.t) to individual rows.</p>
 <div class="layout-chunk" data-layout="l-body">
 <div class="sourceCode">
-<pre><code><span class='va'>data.places</span> <span class='op'>&lt;-</span> <span class='va'>data.students</span> <span class='op'>%&gt;%</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span class='va'>data.places</span> <span class='op'>&lt;-</span> <span class='va'>data.students</span> <span class='op'>%&gt;%</span>
     <span class='co'># Work only with Place data and (internal) student id</span>
     <span class='fu'>select</span><span class='op'>(</span><span class='va'>ID</span>, <span class='va'>Place1.n</span>, <span class='va'>Place1.t</span>, <span class='va'>Place2.n</span>, <span class='va'>Place2.t</span>, <span class='va'>Place3.n</span>, <span class='va'>Place3.t</span>,
            <span class='va'>Place4.n</span>, <span class='va'>Place4.t</span>, <span class='va'>Place5.n</span>, <span class='va'>Place5.t</span>, <span class='va'>Place6.n</span>, <span class='va'>Place6.t</span>, <span class='va'>Place7.n</span>,
@@ -2693,7 +2748,7 @@ Code &amp; Data
 <h3 id="data-table-key-places">Data Table (Key Places)</h3>
 <div class="layout-chunk" data-layout="l-body">
 <div class="sourceCode">
-<pre><code><span class='fu'>paged_table</span><span class='op'>(</span><span class='fu'>sample_n</span><span class='op'>(</span><span class='va'>data.places</span>, <span class='fu'>n</span><span class='op'>(</span><span class='op'>)</span><span class='op'>)</span>, options<span class='op'>=</span><span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span><span class='op'>(</span>rows.print<span class='op'>=</span><span class='fl'>25</span><span class='op'>)</span><span class='op'>)</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span class='fu'>paged_table</span><span class='op'>(</span><span class='fu'>sample_n</span><span class='op'>(</span><span class='va'>data.places</span>, <span class='fu'>n</span><span class='op'>(</span><span class='op'>)</span><span class='op'>)</span>, options<span class='op'>=</span><span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span><span class='op'>(</span>rows.print<span class='op'>=</span><span class='fl'>25</span><span class='op'>)</span><span class='op'>)</span>
 </code></pre>
 </div>
 <div data-pagedtable="false">
@@ -2711,7 +2766,7 @@ Code &amp; Data
 <p>Finally, for the <strong>Missing Moose</strong> page (<em>forthcoming</em>), we will visualize the change in housing density from Spring to Fall. Ezra Stiles College provided the relevant housing counts to assist with this section. The data is saved in the slightly more readable “wider” format, which focuses on the two terms:</p>
 <div class="layout-chunk" data-layout="l-body">
 <div class="sourceCode">
-<pre><code><span class='co'># Read housing counts</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span class='co'># Read housing counts</span>
 <span class='va'>data.housing_wide</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/utils/read.table.html'>read.csv</a></span><span class='op'>(</span><span class='st'>"data/housing_S20_F20_wide.csv"</span><span class='op'>)</span>
 <span class='fu'>paged_table</span><span class='op'>(</span><span class='va'>data.housing_wide</span><span class='op'>)</span>
 </code></pre>
@@ -2725,7 +2780,7 @@ Code &amp; Data
 <p>However, as with the previous <em>pivot</em>, we want the data in a “longer” format which places each entryway/dorm in a separate row:</p>
 <div class="layout-chunk" data-layout="l-body">
 <div class="sourceCode">
-<pre><code><span class='co'># Lengthen housing counts</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span class='co'># Lengthen housing counts</span>
 <span class='va'>data.housing_long</span> <span class='op'>&lt;-</span> <span class='va'>data.housing_wide</span> <span class='op'>%&gt;%</span>
     <span class='fu'>pivot_longer</span><span class='op'>(</span><span class='op'>!</span><span class='va'>Term</span>,
                  names_to<span class='op'>=</span><span class='st'>"Entryway"</span>,
@@ -2745,10 +2800,10 @@ Code &amp; Data
 <p>We save the above datasets to separate files:</p>
 <div class="layout-chunk" data-layout="l-body">
 <div class="sourceCode">
-<pre><code><span class='co'># t &lt;- format(Sys.time(), "%Y%m%d_%H%M%S")</span>
+<pre class="sourceCode r"><code class="sourceCode r"><span class='co'># t &lt;- format(Sys.time(), "%Y%m%d_%H%M%S")</span>
 <span class='va'>t</span> <span class='op'>&lt;-</span> <span class='st'>"20201227_235052"</span>
-<span class='fu'><a href='https://rdrr.io/r/utils/write.table.html'>write.csv</a></span><span class='op'>(</span><span class='va'>data.students</span>, <span class='fu'><a href='https://rdrr.io/r/base/paste.html'>paste</a></span><span class='op'>(</span><span class='st'>"data/students_"</span>, <span class='va'>t</span>, <span class='st'>".csv"</span>, sep<span class='op'>=</span><span class='st'>""</span><span class='op'>)</span>, row.names<span class='op'>=</span><span class='cn'>F</span><span class='op'>)</span>
-<span class='fu'><a href='https://rdrr.io/r/utils/write.table.html'>write.csv</a></span><span class='op'>(</span><span class='va'>data.places</span>, <span class='fu'><a href='https://rdrr.io/r/base/paste.html'>paste</a></span><span class='op'>(</span><span class='st'>"data/places_"</span>, <span class='va'>t</span>, <span class='st'>".csv"</span>, sep<span class='op'>=</span><span class='st'>""</span><span class='op'>)</span>, row.names<span class='op'>=</span><span class='cn'>F</span><span class='op'>)</span>
+<span class='fu'><a href='https://rdrr.io/r/utils/write.table.html'>write.csv</a></span><span class='op'>(</span><span class='va'>data.students</span>, <span class='fu'><a href='https://rdrr.io/r/base/paste.html'>paste0</a></span><span class='op'>(</span><span class='st'>"data/students_"</span>, <span class='va'>t</span>, <span class='st'>".csv"</span>, sep<span class='op'>=</span><span class='st'>""</span><span class='op'>)</span>, row.names<span class='op'>=</span><span class='cn'>F</span><span class='op'>)</span>
+<span class='fu'><a href='https://rdrr.io/r/utils/write.table.html'>write.csv</a></span><span class='op'>(</span><span class='va'>data.places</span>, <span class='fu'><a href='https://rdrr.io/r/base/paste.html'>paste0</a></span><span class='op'>(</span><span class='st'>"data/places_"</span>, <span class='va'>t</span>, <span class='st'>".csv"</span>, sep<span class='op'>=</span><span class='st'>""</span><span class='op'>)</span>, row.names<span class='op'>=</span><span class='cn'>F</span><span class='op'>)</span>
 <span class='fu'><a href='https://rdrr.io/r/utils/write.table.html'>write.csv</a></span><span class='op'>(</span><span class='va'>data.housing_long</span>, <span class='st'>"data/housing_S20_F20_long.csv"</span>, row.names<span class='op'>=</span><span class='cn'>F</span><span class='op'>)</span>
 </code></pre>
 </div>
