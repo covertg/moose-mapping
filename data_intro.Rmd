@@ -215,8 +215,8 @@ We save the above datasets to separate files:
 ```{r eval=F}
 # t <- format(Sys.time(), "%Y%m%d_%H%M%S")
 t <- "20201227_235052"
-write.csv(data.students, paste("data/students_", t, ".csv", sep=""), row.names=F)
-write.csv(data.places, paste("data/places_", t, ".csv", sep=""), row.names=F)
+write.csv(data.students, paste0("data/students_", t, ".csv", sep=""), row.names=F)
+write.csv(data.places, paste0("data/places_", t, ".csv", sep=""), row.names=F)
 write.csv(data.housing_long, "data/housing_S20_F20_long.csv", row.names=F)
 ```
 

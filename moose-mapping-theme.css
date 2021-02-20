@@ -103,9 +103,12 @@ blockquote p { /* Remove double margin in nested element */
     margin-bottom: 1em;
 }
 
-/* Increase height of Leaflet maps */
-.leaflet {
+/* Leaflet formatting */
+.leaflet { /* Increase height */
     height: 80vh !important;  /* https://developer.mozilla.org/en-US/docs/Web/CSS/length#Viewport-percentage_lengths */
+}
+.leaflet-control:nth-child(2), .leaflet-control .slider {  /* Increase width of Playback slider */
+    width: 50vw;
 }
 
 /* Pad all sides of shaded figures */

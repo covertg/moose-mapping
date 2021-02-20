@@ -37,7 +37,7 @@ Some data is also a handmade set of geographic polygons corresponding to the dif
 
 ```{r}
 t <- "20201227_235052"
-data.students.loc <- read.csv(paste("data/students_", t, "_locclean.csv", sep="")) %>%
+data.students.loc <- read.csv(paste0("data/students_", t, "_locclean.csv")) %>%
     select(-c(Email, starts_with("Place"))) %>%
     # New variable: we couldn't do this in the last page since the data wasn't fully cleaned.
     mutate(Housing.F20=case_when(
@@ -71,7 +71,8 @@ data.locations <- data.students.loc %>%
     # they go through in a given epoch.
     unnest_longer(Address, indices_to="Waypoint") %>%
     # Cleanup
-    mutate(Address=trimws(Address))
+    mutate(Address=trimws(Address)) %>%
+    arrange(ID, Epoch, Waypoint)
 
 # How many Waypoints end up in each Epoch?
 mw <- data.locations %>% group_by(Epoch) %>% summarize(MaxWaypoint=max(Waypoint))
@@ -97,44 +98,85 @@ epoch_lengths <- setNames(
     epoch_days[2:8] - epoch_days[1:7],
     mw$Epoch
 )
-data.locations <- data.locations %>%
+waypoint_days <- data.locations %>%
+    select(Epoch, Waypoint) %>%
+    unique() %>%
     mutate(days_no_waypt=epoch_days[Epoch]) %>%
     mutate(waypt_duration=round(
         (epoch_lengths[Epoch] / n_waypoints[Epoch]) * (as.numeric(Waypoint) - 1)
     )) %>%
     mutate(Day=(days_no_waypt + waypt_duration)) %>%
-    select(-c(days_no_waypt, waypt_duration))
+    select(-c(days_no_waypt, waypt_duration)) %>%
+    arrange(Day, Waypoint)
+waypoint_days <- waypoint_days %>%
+    mutate(EndDay=c(waypoint_days$Day[2:n()] - 1, 365))
+
+waypoint_start <- waypoint_days %>%
+    select(!EndDay) %>%
+    pivot_wider(names_from=Waypoint, values_from=c(Day)) %>%
+    column_to_rownames("Epoch")
+waypoint_end <- waypoint_days %>%
+    select(!Day) %>%
+    pivot_wider(names_from=Waypoint, values_from=c(EndDay)) %>%
+    column_to_rownames("Epoch")
+# The above computation is equivalent to the following (except in ragged matrix form):
+# waypoint_days <- matrix(nrow=7, ncol=max(n_waypoints), dimnames=list(c(1, 2, "2.5", 3, 4, 5, 6), NULL))
+# for (e in 1:nrow(waypoint_days)) {
+#     for (w in 1:n_waypoints[e]) {
+#         duration_we <- round(epoch_lengths[e] / n_waypoints[e]) * (w - 1)
+#         waypoint_days[e, w] <- epoch_days[e] + duration_we
+#     }
+# }
 ```
 
 Now we augment the data just a little bit more to complete our assumption that people's locations stayed constant until the next-provided location. In order to make for sane interpolations when animating people's movements on a map, we want to clarify their location immediately prior to the next epoch. Otherwise, some people might slowly interpolate across the country over a series of many days.
+
+```{r}
+get_day.V <- Vectorize(function(e, w) {
+    return(as.numeric(waypoint_start[e, w]))
+})
+get_endday.V <- Vectorize(function(id, e, w) {
+    s <- data.locations %>% filter(ID==id & Epoch==e)
+    last_waypoint_overall <- n_waypoints[e]
+    last_waypoint_student <- max(s$Waypoint)
+    last_waypoint <- ifelse(w != last_waypoint_student, w, last_waypoint_overall)
+    return(as.numeric(waypoint_end[e, last_waypoint]))
+})
+
+data.locations <- data.locations %>%
+    mutate(start=get_day.V(Epoch, Waypoint)) %>%
+    mutate(end=get_endday.V(ID, Epoch, Waypoint)) %>%
+    pivot_longer(c(start, end), values_to="Day", names_to="DayType")
+```
 
 ```{r}
 # Sorry, this isn't tidy in the slightest. It involves selectively duplicating
 # and then modifying rows, which is much more readable and approachable via loops.
 
 # for s in students
-for (id in unique(data.locations$ID)) {
-    s <- data.locations %>% filter(ID==id)
-    # for e in epochs
-    for (e in c(1, 2, "2.5", 3, 4, 5, 6)) {
-        # get the students' last waypoint in epoch t
-        w <- s %>% filter(Epoch==e)
-        mw <- max(w$Waypoint)
-        # copy that row, but set Waypoint to "end" and Day to (next epoch start - 1)
-        new_row <- w %>% filter(Waypoint==mw) %>%
-            mutate(Waypoint="end") %>%
-            mutate(Day=epoch_days[which(names(epoch_days)==e)+1]-1)
-        data.locations <- data.locations %>% rbind(new_row)
-    }
-}
+# for (id in unique(data.locations$ID)) {
+#     s <- data.locations %>% filter(ID==id)
+#     # for e in epochs
+#     for (e in c(1, 2, "2.5", 3, 4, 5, 6)) {
+#         # get the students' last waypoint in epoch t
+#         w <- s %>% filter(Epoch==e)
+#         mw <- max(w$Waypoint)
+#         # copy that row, but set Waypoint to "end" and Day to (next epoch start - 1)
+#         new_row <- w %>% filter(Waypoint==mw) %>%
+#             mutate(Waypoint="end") %>%
+#             mutate(Day=epoch_days[which(names(epoch_days)==e)+1]-1)
+#         data.locations <- data.locations %>% rbind(new_row)
+#     }
+# }
 ```
 
-Finally: a simple label that pastes Epoch-Waypoint together.
+Finally: a simple label that pastes Epoch-Waypoint together, and a formatted Y-M-D date.
 
 ```{r}
 data.locations <- data.locations %>%
-    mutate(TimeEW=paste("t", Epoch, "-", Waypoint, sep="")) %>%
-    arrange(ID, TimeEW)
+    mutate(TimeEW=paste0("t", Epoch, "-", Waypoint, DayType)) %>%
+    select(!DayType) %>%
+    mutate(Date=as.Date(Day, origin="2020-01-01", tz=UTC))
 ```
 
 ```{r}
@@ -163,7 +205,7 @@ extract_location.V <- Vectorize(extract_location)
 # duplicate those locations through the remaining waypoints as necessary.
 is <- c(1, 2, "2.5", 3, 4, 5, 6)
 for (i in is) {
-    loc <- paste("Loc", i, sep="")
+    loc <- paste0("Loc", i)
     # Split each epoch of locations into a vector by the ";" delimiter.
     data.students.loc <- data.students.loc %>%
         mutate(across(.data[[loc]], str_split, pattern=";"))
@@ -171,7 +213,7 @@ for (i in is) {
     # when necessary.
     n_waypoints <- max(sapply(map(data.students.loc[[loc]], length), max))  # [1]
     for (j in 1:n_waypoints) {
-        loc_j <- paste(loc, "_", j, sep="")
+        loc_j <- paste0(loc, "_", j,)
         data.students.loc <- data.students.loc %>%
             mutate("{loc_j}" := extract_location.V(.data[[loc]], j))  # [2]
     }
@@ -206,12 +248,23 @@ data.locations.conn <- data.locations %>%
 Final and most important augmentation here.
 
 ```{r eval=F}
-data.locations <- data.locations %>%
-    # Could be made more efficient by only looking up unique locations
+# Reduce the list of many locations into unique locations, and geocode those
+locations_unique <- data.locations %>%
+    # Get just unique addressess
+    select(Address) %>%
+    unique() %>%
+    # Geocode
     mutate_geocode(Address) %>%
     st_as_sf(coords=c("lon", "lat"), crs=4326)  # Note that order should be LON, LAT
 
-saveRDS(data.locations, file=paste("data/locations_", t, ".rds", sep=""))
+# Lookup those geocoded coordinates for each (non-unique) location in the full table
+get_location_sf.V <- Vectorize(function(address) { return((locations_unique %>% filter(Address==address))$geometry) })
+data.locations <- data.locations %>%
+    mutate(geometry=get_location_sf.V(Address)) %>%
+    st_as_sf()
+
+# Save
+saveRDS(data.locations, file=paste0("data/locations_", t, ".rds"))
 ```
 
 Converts to Simple Features, which we love <3. Final product in the table below.
@@ -219,7 +272,7 @@ Converts to Simple Features, which we love <3. Final product in the table below.
 ### Data Table (Mapping Moose)
 
 ```{r}
-data.locations <- readRDS(paste("data/locations_", t, ".rds", sep=""))
+data.locations <- readRDS(paste0("data/locations_", t, ".rds"))
 paged_table(sample_n(data.locations, n()))
 ```
 
@@ -282,7 +335,7 @@ Note, however, that there are some special places which aren't lookup-able by Go
 These occurrences are separated from the table and mapped to coordinates by manual lookup data. The remaining physical locations are geocoded as above.
 
 ```{r}
-data.places <- read.csv(paste("data/places_", t, "_locclean.csv", sep=""))  %>%
+data.places <- read.csv(paste0("data/places_", t, "_locclean.csv"))  %>%
     mutate(Name=trimws(toTitleCase(Name)))
 
 data.places.stiles <- data.places %>%
@@ -346,11 +399,11 @@ range(data.places.yale$lat[is.finite(data.places.yale$lat)])  # [1] 41.11225 41.
 data.places.physical <- data.places.yale %>%
     rbind(data.places.stiles) %>%
     mutate(lon=unlist(lon), lat=unlist(lat))
-write.csv(data.places.physical, paste("data/places.physical_" , t, ".csv"), row.names=F)
+write.csv(data.places.physical, paste0("data/places.physical_" , t, ".csv"), row.names=F)
 ```
 
 Virtual places must remain as-is, as Science has not yet determined how to map the virtual realm onto the real world of latitude, longitude coordinates. Instead we will make a WORD CLOUD :D.
 
 ```{r}
-write.csv(data.places.virt, paste("data/places.virt_" , t, ".csv", sep=""), row.names=F)
+write.csv(data.places.virt, paste0("data/places.virt_" , t, ".csv", sep=""), row.names=F)
 ```

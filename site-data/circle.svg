@@ -1,0 +1,16 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" class="ionicon">
+ <title>Ellipse</title>
+ <defs>
+  <filter id="svg_1_blur">
+   <feGaussianBlur stdDeviation="0" in="SourceGraphic"/>
+  </filter>
+ </defs>
+ <g>
+  <title>background</title>
+  <rect fill="none" id="canvas_background" height="602" width="802" y="-1" x="-1"/>
+ </g>
+ <g>
+  <title>Layer 1</title>
+  <circle filter="url(#svg_1_blur)" opacity="0.85" id="svg_1" stroke-width="80" stroke-linejoin="round" stroke-linecap="round" stroke="#000000" fill="#FFFA8D" r="192" cy="256" cx="256"/>
+ </g>
+</svg>

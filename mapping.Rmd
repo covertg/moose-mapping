@@ -15,34 +15,57 @@ library(tidyverse)
 library(rnaturalearth)
 library(sf)
 library(ggthemes)
+library(htmlwidgets)
 library(leaflet)
 library(leaflet.extras2)
-#library(plotly)
-#library(gganimate)  # also requires transformr
 ```
 
 We want to animate people's locations over the past few months.
 
 ```{r}
 t <- "20201227_235052"
-data.locations <- readRDS(paste("data/locations_", t, ".rds", sep=""))
+data.locations <- readRDS(paste0("data/locations_", t, ".rds")) %>%
+    st_jitter(factor=0.0001)
+dots <- makeIcon(
+  iconUrl="site-data/circle.svg",
+  iconWidth=8, iconHeight=8,
+  iconAnchorX=4, iconAnchorY=4
+)
 ```
 
 ```{r layout="l-page"}
 d <- data.locations %>%
-    mutate(time=as.Date(Day, origin="2020-01-01", tz=UTC)) %>%
-    st_jitter(factor=0.0001) %>%  # For respondents whose locations stay constant for a while
     split(data.locations$ID)
 
 leaflet() %>%
-    addProviderTiles(providers$Stamen.Watercolor) %>%
-    addPlayback(data=d,
+    addProviderTiles(providers$CartoDB.Positron) %>%
+    addPlayback(data=d, icon=dots, time="Date",
                 options=playbackOptions(radius=1, tracksLayer=F, dateControl=T,
-                                        tickLen=1000*60*60*24/4,  # 1/4 day
-                                        speed=1*60*60*24*35,  # 7 day/sec
+                                        tickLen=(1000*60*60*24)/12,  # Each tick is 2 hours (1/12 day)
+                                        speed=(1*60*60*24)*3,  # The ticker moves at 3 days/sec
                                         maxInterpolationTime=1000*60*60*24*365,
-                                        staleTime=10000000000000000*60*60*24*365))
+                                        staleTime=10000000000000000*60*60*24*365,
+                                        tooltips=T))
 ```
+
+```{r}
+# onRender(
+#         "HTMLWidgets.find('.leaflet').getMap().playback._trackController._tracks[1]._marker.feature.properties
+#         HTMLWidgets.find('.leaflet').getMap().playback.options.marker = function (featureData) {
+#             return {
+#                 getTooltip: function (featureData) {
+#                     var result = '';
+#                     if (featureData && featureData.properties && featureData.properties.title) {
+#                         result = featureData.properties.Address;
+#                     }
+#                     return result;
+#                 }
+#             }
+#         }")
+```
+
+
+https://rdrr.io/cran/leaflet.extras2/src/R/playback.R
 
 ```{r eval=F}
 # data <- sf::st_as_sf(leaflet::atlStorms2005[1:5,])
